@@ -13,8 +13,8 @@ export default function App() {
   const [total, setTotal] = useState(0);
   const [sent, setSent] = useState(0);
   const [failed, setFailed] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("Ready");
+  const [loading, setLoading] = useState(false);
 
   const sendEmails = async () => {
     const emailList = emails
@@ -35,55 +35,48 @@ export default function App() {
     }
 
     setLoading(true);
+
     setTotal(emailList.length);
     setSent(0);
     setFailed(0);
 
-    let sentCount = 0;
-    let failedCount = 0;
+    try {
+      setStatus("Sending...");
 
-    for (let i = 0; i < emailList.length; i++) {
-      try {
-        setStatus(`Sending to ${emailList[i]}`);
+      const response = await fetch(
+        "https://YOUR-BACKEND.onrender.com/send-email",
+        {
+          method: "POST",
 
-        const response = await fetch(
-          "https://YOUR-BACKEND.onrender.com/send-email",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+          headers: {
+            "Content-Type": "application/json",
+          },
 
-            body: JSON.stringify({
-              gmail,
-              password,
-              senderName,
-              to: emailList[i],
-              subject,
-              message,
-            }),
-          }
-        );
-
-        const data = await response.json();
-
-        if (data.success) {
-          sentCount++;
-          setSent(sentCount);
-        } else {
-          failedCount++;
-          setFailed(failedCount);
+          body: JSON.stringify({
+            gmail,
+            password,
+            senderName,
+            emails: emailList,
+            subject,
+            message,
+          }),
         }
-      } catch (error) {
-        failedCount++;
-        setFailed(failedCount);
-      }
+      );
 
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      const data = await response.json();
+
+      if (data.success) {
+        setSent(data.sent);
+        setFailed(data.failed);
+        setStatus("Completed");
+      } else {
+        setStatus(data.message || "Failed");
+      }
+    } catch (error) {
+      setStatus("Server Error");
     }
 
     setLoading(false);
-    setStatus("Completed");
   };
 
   const clearAll = () => {
@@ -97,6 +90,14 @@ export default function App() {
     setSent(0);
     setFailed(0);
     setStatus("Ready");
+  };
+
+  const logout = () => {
+    clearAll();
+
+    localStorage.clear();
+
+    window.location.reload();
   };
 
   return (
@@ -170,12 +171,16 @@ export default function App() {
           </button>
 
           <button
-            onClick={clearAll}
+            onDoubleClick={logout}
             className="bg-blue-500 hover:bg-blue-600 transition-all text-white text-2xl font-bold rounded-2xl py-6"
           >
             Logout
           </button>
         </div>
+
+        <p className="text-center text-gray-500 mt-2">
+          Double-click logout button
+        </p>
 
         <div className="mt-10 grid md:grid-cols-4 gap-5">
 
@@ -186,12 +191,16 @@ export default function App() {
 
           <div className="bg-gray-100 rounded-2xl p-5 text-center">
             <p className="text-gray-500 text-lg">Sent</p>
-            <h2 className="text-4xl font-bold text-green-600">{sent}</h2>
+            <h2 className="text-4xl font-bold text-green-600">
+              {sent}
+            </h2>
           </div>
 
           <div className="bg-gray-100 rounded-2xl p-5 text-center">
             <p className="text-gray-500 text-lg">Failed</p>
-            <h2 className="text-4xl font-bold text-red-600">{failed}</h2>
+            <h2 className="text-4xl font-bold text-red-600">
+              {failed}
+            </h2>
           </div>
 
           <div className="bg-gray-100 rounded-2xl p-5 text-center">
