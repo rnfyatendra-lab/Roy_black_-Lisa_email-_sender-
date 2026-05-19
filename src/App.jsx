@@ -1,3 +1,5 @@
+// FILE NAME: src/App.jsx
+
 import { useState } from "react";
 
 export default function App() {
@@ -12,37 +14,56 @@ export default function App() {
   const [sent, setSent] = useState(0);
   const [failed, setFailed] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("Ready");
 
   const sendEmails = async () => {
     const emailList = emails
-      .split("\n")
+      .split(/[\n,]+/)
       .map((e) => e.trim())
       .filter((e) => e !== "");
 
+    if (
+      !gmail ||
+      !password ||
+      !senderName ||
+      !subject ||
+      !message ||
+      emailList.length === 0
+    ) {
+      alert("Fill all fields");
+      return;
+    }
+
+    setLoading(true);
     setTotal(emailList.length);
+    setSent(0);
+    setFailed(0);
 
     let sentCount = 0;
     let failedCount = 0;
 
-    setLoading(true);
-
     for (let i = 0; i < emailList.length; i++) {
       try {
-        const response = await fetch("http://localhost:5000/send-email", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+        setStatus(`Sending to ${emailList[i]}`);
 
-          body: JSON.stringify({
-            gmail,
-            password,
-            senderName,
-            to: emailList[i],
-            subject,
-            message,
-          }),
-        });
+        const response = await fetch(
+          "https://YOUR-BACKEND.onrender.com/send-email",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+
+            body: JSON.stringify({
+              gmail,
+              password,
+              senderName,
+              to: emailList[i],
+              subject,
+              message,
+            }),
+          }
+        );
 
         const data = await response.json();
 
@@ -58,10 +79,11 @@ export default function App() {
         setFailed(failedCount);
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
     setLoading(false);
+    setStatus("Completed");
   };
 
   const clearAll = () => {
@@ -74,24 +96,34 @@ export default function App() {
     setTotal(0);
     setSent(0);
     setFailed(0);
+    setStatus("Ready");
   };
 
   return (
-    <div className="min-h-screen bg-slate-200 flex items-center justify-center p-6">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6">
+    <div className="min-h-screen bg-[#eef2f7] flex items-center justify-center p-5">
 
-        <h1 className="text-3xl font-bold text-center mb-6">
-          Bulk Mail Sender
+      <div className="w-full max-w-6xl bg-white rounded-[30px] shadow-lg p-10">
+
+        <h1 className="text-center text-4xl font-bold mb-10">
+          Fast Mail Launcher
         </h1>
 
-        <div className="space-y-4">
+        <div className="grid md:grid-cols-2 gap-6">
+
+          <input
+            type="text"
+            placeholder="Sender Name"
+            value={senderName}
+            onChange={(e) => setSenderName(e.target.value)}
+            className="border border-gray-300 rounded-2xl p-5 text-2xl outline-none"
+          />
 
           <input
             type="email"
             placeholder="Your Gmail"
             value={gmail}
             onChange={(e) => setGmail(e.target.value)}
-            className="w-full border p-3 rounded-lg"
+            className="border border-gray-300 rounded-2xl p-5 text-2xl outline-none"
           />
 
           <input
@@ -99,23 +131,7 @@ export default function App() {
             placeholder="App Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full border p-3 rounded-lg"
-          />
-
-          <input
-            type="text"
-            placeholder="Sender Name"
-            value={senderName}
-            onChange={(e) => setSenderName(e.target.value)}
-            className="w-full border p-3 rounded-lg"
-          />
-
-          <textarea
-            rows={5}
-            placeholder="Recipient Emails"
-            value={emails}
-            onChange={(e) => setEmails(e.target.value)}
-            className="w-full border p-3 rounded-lg"
+            className="border border-gray-300 rounded-2xl p-5 text-2xl outline-none"
           />
 
           <input
@@ -123,65 +139,64 @@ export default function App() {
             placeholder="Subject"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            className="w-full border p-3 rounded-lg"
+            className="border border-gray-300 rounded-2xl p-5 text-2xl outline-none"
           />
 
           <textarea
-            rows={6}
-            placeholder="Message"
+            rows={8}
+            placeholder="Message Body"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="w-full border p-3 rounded-lg"
+            className="border border-gray-300 rounded-2xl p-5 text-2xl resize-none outline-none"
           />
 
-          <div className="grid grid-cols-2 gap-4">
-
-            <button
-              onClick={sendEmails}
-              disabled={loading}
-              className="bg-green-500 text-white py-3 rounded-xl"
-            >
-              {loading ? "Sending..." : "Send"}
-            </button>
-
-            <button
-              onClick={clearAll}
-              className="bg-red-500 text-white py-3 rounded-xl"
-            >
-              Clear
-            </button>
-
-          </div>
-
-          <button className="w-full bg-slate-700 text-white py-3 rounded-xl">
-            Exit
-          </button>
-
+          <textarea
+            rows={8}
+            placeholder="Recipients (comma or newline)"
+            value={emails}
+            onChange={(e) => setEmails(e.target.value)}
+            className="border border-gray-300 rounded-2xl p-5 text-2xl resize-none outline-none"
+          />
         </div>
 
-        <div className="mt-8 bg-slate-100 rounded-2xl p-5">
+        <div className="grid md:grid-cols-[1fr_180px] gap-6 mt-8">
 
-          <h2 className="text-2xl font-bold text-center mb-5">
-            Sending Progress
-          </h2>
+          <button
+            onClick={sendEmails}
+            disabled={loading}
+            className="bg-blue-500 hover:bg-blue-600 transition-all text-white text-3xl font-bold rounded-2xl py-6"
+          >
+            {loading ? "Sending..." : "Send All"}
+          </button>
 
-          <div className="grid grid-cols-3 gap-4">
+          <button
+            onClick={clearAll}
+            className="bg-blue-500 hover:bg-blue-600 transition-all text-white text-2xl font-bold rounded-2xl py-6"
+          >
+            Logout
+          </button>
+        </div>
 
-            <div className="bg-white p-4 rounded-xl text-center shadow">
-              <p>Total</p>
-              <h3 className="text-2xl font-bold">{total}</h3>
-            </div>
+        <div className="mt-10 grid md:grid-cols-4 gap-5">
 
-            <div className="bg-white p-4 rounded-xl text-center shadow">
-              <p>Sent</p>
-              <h3 className="text-2xl font-bold text-green-600">{sent}</h3>
-            </div>
+          <div className="bg-gray-100 rounded-2xl p-5 text-center">
+            <p className="text-gray-500 text-lg">Total</p>
+            <h2 className="text-4xl font-bold">{total}</h2>
+          </div>
 
-            <div className="bg-white p-4 rounded-xl text-center shadow">
-              <p>Failed</p>
-              <h3 className="text-2xl font-bold text-red-600">{failed}</h3>
-            </div>
+          <div className="bg-gray-100 rounded-2xl p-5 text-center">
+            <p className="text-gray-500 text-lg">Sent</p>
+            <h2 className="text-4xl font-bold text-green-600">{sent}</h2>
+          </div>
 
+          <div className="bg-gray-100 rounded-2xl p-5 text-center">
+            <p className="text-gray-500 text-lg">Failed</p>
+            <h2 className="text-4xl font-bold text-red-600">{failed}</h2>
+          </div>
+
+          <div className="bg-gray-100 rounded-2xl p-5 text-center">
+            <p className="text-gray-500 text-lg">Status</p>
+            <h2 className="text-xl font-bold">{status}</h2>
           </div>
         </div>
       </div>
