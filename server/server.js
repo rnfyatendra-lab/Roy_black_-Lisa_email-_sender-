@@ -7,7 +7,14 @@ import nodemailer from "nodemailer";
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+
+app.use(
+  express.json({
+    limit: "10mb",
+  })
+);
+
+const PORT = process.env.PORT || 5000;
 
 const SESSION_TIME = 60 * 60 * 1000;
 
@@ -19,35 +26,48 @@ const DAILY_LIMIT = 600;
 let sentToday = 0;
 let sessionStart = Date.now();
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+app.get("/", (req, res) => {
+  res.send("Backend Running");
+});
 
 app.post("/send-email", async (req, res) => {
-  const {
-    gmail,
-    password,
-    senderName,
-    emails,
-    subject,
-    message,
-  } = req.body;
-
   try {
-    if (!gmail || !password || !emails?.length) {
-      return res.json({
+    const {
+      gmail,
+      password,
+      senderName,
+      emails,
+      subject,
+      message,
+    } = req.body;
+
+    if (
+      !gmail ||
+      !password ||
+      !senderName ||
+      !subject ||
+      !message ||
+      !emails ||
+      emails.length === 0
+    ) {
+      return res.status(400).json({
         success: false,
-        message: "Missing fields",
+        message: "Missing required fields",
       });
     }
 
     const now = Date.now();
 
     if (now - sessionStart > SESSION_TIME) {
-      sessionStart = now;
       sentToday = 0;
+      sessionStart = now;
     }
 
     if (sentToday >= DAILY_LIMIT) {
-      return res.json({
+      return res.status(429).json({
         success: false,
         message: "Daily limit reached",
       });
@@ -65,6 +85,8 @@ app.post("/send-email", async (req, res) => {
       maxConnections: 4,
       maxMessages: Infinity,
     });
+
+    await transporter.verify();
 
     let sent = 0;
     let failed = 0;
@@ -85,11 +107,11 @@ app.post("/send-email", async (req, res) => {
             sent++;
             sentToday++;
 
-            console.log(`Sent -> ${email}`);
-          } catch (error) {
+            console.log(`Sent: ${email}`);
+          } catch (err) {
             failed++;
 
-            console.log(`Failed -> ${email}`);
+            console.log(`Failed: ${email}`);
           }
         })
       );
@@ -99,7 +121,7 @@ app.post("/send-email", async (req, res) => {
 
     transporter.close();
 
-    res.json({
+    return res.json({
       success: true,
       sent,
       failed,
@@ -107,13 +129,13 @@ app.post("/send-email", async (req, res) => {
   } catch (error) {
     console.log(error);
 
-    res.json({
+    return res.status(500).json({
       success: false,
-      message: "Server Error",
+      message: error.message,
     });
   }
 });
 
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
+app.listen(PORT, () => {
+  console.log(`Server running on ${PORT}`);
 });
