@@ -11,6 +11,9 @@ app.get("/", (req, res) => {
   res.send("Backend Running");
 });
 
+const BATCH_SIZE = 4;
+const BATCH_DELAY = 400;
+
 app.post("/send-email", async (req, res) => {
   try {
     const {
@@ -33,23 +36,30 @@ app.post("/send-email", async (req, res) => {
     let sent = 0;
     let failed = 0;
 
-    for (const email of recipients) {
-      try {
-        await transporter.sendMail({
-          from: `"${senderName}" <${gmail}>`,
-          to: email,
-          subject,
-          text: message,
-        });
+    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+      const batch = recipients.slice(i, i + BATCH_SIZE);
 
-        sent++;
+      await Promise.all(
+        batch.map(async (email) => {
+          try {
+            await transporter.sendMail({
+              from: `"${senderName}" <${gmail}>`,
+              to: email,
+              subject,
+              text: message,
+            });
 
-        await new Promise((resolve) =>
-          setTimeout(resolve, 400)
-        );
-      } catch (err) {
-        failed++;
-      }
+            sent++;
+          } catch (err) {
+            console.log(err);
+            failed++;
+          }
+        })
+      );
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, BATCH_DELAY)
+      );
     }
 
     res.json({
@@ -70,5 +80,5 @@ app.post("/send-email", async (req, res) => {
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+  console.log(`Server running on ${PORT}`);
 });
