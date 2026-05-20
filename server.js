@@ -1,12 +1,16 @@
-const express = require("express");
-const nodemailer = require("nodemailer");
-const cors = require("cors");
-const path = require("path");
+import express from "express";
+import cors from "cors";
+import nodemailer from "nodemailer";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 app.use(express.static(__dirname));
 
@@ -14,10 +18,8 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.post("/send-email", async (req, res) => {
-
+app.post("/send", async (req, res) => {
   try {
-
     const {
       senderName,
       gmail,
@@ -26,6 +28,19 @@ app.post("/send-email", async (req, res) => {
       message,
       emails
     } = req.body;
+
+    if (
+      !gmail ||
+      !appPassword ||
+      !subject ||
+      !message ||
+      !emails
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields required"
+      });
+    }
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -36,28 +51,28 @@ app.post("/send-email", async (req, res) => {
     });
 
     const emailList = emails
-      .split("\n")
-      .map(e => e.trim())
+      .split(/[\n,]+/)
+      .map((e) => e.trim())
       .filter(Boolean);
 
     let sent = 0;
     let failed = 0;
 
     for (const email of emailList) {
-
       try {
-
         await transporter.sendMail({
           from: `"${senderName}" <${gmail}>`,
           to: email,
-          subject: subject,
+          subject,
           text: message
         });
 
         sent++;
 
+        await new Promise((resolve) =>
+          setTimeout(resolve, 2000)
+        );
       } catch (err) {
-
         failed++;
       }
     }
@@ -67,11 +82,7 @@ app.post("/send-email", async (req, res) => {
       sent,
       failed
     });
-
-  } catch (err) {
-
-    console.log(err);
-
+  } catch (error) {
     res.status(500).json({
       success: false,
       message: "Server Error"
@@ -82,5 +93,5 @@ app.post("/send-email", async (req, res) => {
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
-  console.log("Server Started");
+  console.log(`Server running on ${PORT}`);
 });
