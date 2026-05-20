@@ -1,5 +1,5 @@
 {
-  "name": "bulk-mail-launcher",
+  "name": "Inbox-mail-launcher",
   "version": "1.0.0",
   "type": "module",
   "main": "server.js",
