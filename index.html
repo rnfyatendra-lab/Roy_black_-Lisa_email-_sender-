@@ -1,120 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bulk Mail Sender</title>
+  <title>Bulk Mail Launcher</title>
 
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
 
-<div class="main-box">
+  <div class="main-box">
 
-  <div class="top-grid">
-
-    <input
-      type="text"
-      id="senderName"
-      placeholder="Alex"
-    >
-
-    <input
-      type="email"
-      id="gmail"
-      placeholder="yourgmail@gmail.com"
-    >
-
-    <input
-      type="password"
-      id="appPassword"
-      placeholder="App Password"
-    >
-
-    <input
-      type="text"
-      id="subject"
-      placeholder="Directory"
-    >
-
-    <textarea
-      id="message"
-      placeholder="Write message here..."
-    ></textarea>
-
-    <textarea
-      id="emails"
-      placeholder="Enter emails here..."
-    ></textarea>
-
-  </div>
-
-  <div class="button-row">
-
-    <button
-      class="send-btn"
-      onclick="sendEmails()"
-    >
-      Send All
-    </button>
-
-    <button
-      class="logout-btn"
-      onclick="logoutNow()"
-    >
-      Logout
-    </button>
-
-  </div>
-
-  <p class="logout-text">
-    Double-click logout button
-  </p>
-
-  <div class="stats-grid">
-
-    <div class="card">
-      <h3>Total</h3>
-      <h1 id="total">0</h1>
+    <div class="logo">
+      📧
     </div>
 
-    <div class="card">
-      <h3>Sent</h3>
-      <h1
-        id="sent"
-        class="green"
-      >
-        0
-      </h1>
+    <div class="grid-box">
+
+      <input
+        type="text"
+        id="senderName"
+        placeholder="Sender Name"
+      />
+
+      <input
+        type="email"
+        id="gmail"
+        placeholder="Your Gmail"
+      />
+
+      <input
+        type="password"
+        id="appPassword"
+        placeholder="App Password"
+      />
+
+      <input
+        type="text"
+        id="subject"
+        placeholder="Subject"
+      />
+
+      <textarea
+        id="message"
+        placeholder="Message Body"
+      ></textarea>
+
+      <textarea
+        id="emails"
+        placeholder="Recipients (comma or newline)"
+      ></textarea>
+
     </div>
 
-    <div class="card">
-      <h3>Failed</h3>
-      <h1
-        id="failed"
-        class="red"
+    <div class="button-row">
+
+      <button
+        class="send-btn"
+        onclick="sendEmails()"
       >
-        0
-      </h1>
+        Send All
+      </button>
+
+      <button
+        class="logout-btn"
+        ondblclick="logout()"
+      >
+        Logout
+      </button>
+
     </div>
 
-    <div class="card">
-      <h3>Status</h3>
-      <h1
-        id="status"
-        class="status-text"
-      >
-        Ready
-      </h1>
+    <p class="logout-text">
+      Double-click to logout
+    </p>
+
+    <div class="stats-grid">
+
+      <div class="stat-box">
+        <h3>Total</h3>
+        <span id="total">0</span>
+      </div>
+
+      <div class="stat-box">
+        <h3>Sent</h3>
+        <span id="sent" class="green">0</span>
+      </div>
+
+      <div class="stat-box">
+        <h3>Failed</h3>
+        <span id="failed" class="red">0</span>
+      </div>
+
+      <div class="stat-box">
+        <h3>Status</h3>
+        <span id="status">Idle</span>
+      </div>
+
     </div>
 
   </div>
 
-</div>
-
-<script src="script.js"></script>
+  <script src="script.js"></script>
 
 </body>
 </html>
