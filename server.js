@@ -19,7 +19,9 @@ app.get("/", (req, res) => {
 });
 
 app.post("/send", async (req, res) => {
+
   try {
+
     const {
       senderName,
       gmail,
@@ -29,63 +31,43 @@ app.post("/send", async (req, res) => {
       emails
     } = req.body;
 
-    if (
-      !gmail ||
-      !appPassword ||
-      !subject ||
-      !message ||
-      !emails
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields required"
+    const transporter =
+      nodemailer.createTransport({
+
+        service: "gmail",
+
+        auth: {
+          user: gmail,
+          pass: appPassword
+        }
       });
-    }
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: gmail,
-        pass: appPassword
+    await transporter.sendMail({
+
+      from: `"${senderName}" <${gmail}>`,
+
+      to: emails,
+
+      subject: subject,
+
+      text: message,
+
+      headers: {
+        "X-Priority": "3",
+        "X-Mailer": "Professional Mailer"
       }
+
     });
-
-    const emailList = emails
-      .split(/[\n,]+/)
-      .map((e) => e.trim())
-      .filter(Boolean);
-
-    let sent = 0;
-    let failed = 0;
-
-    for (const email of emailList) {
-      try {
-        await transporter.sendMail({
-          from: `"${senderName}" <${gmail}>`,
-          to: email,
-          subject,
-          text: message
-        });
-
-        sent++;
-
-        await new Promise((resolve) =>
-          setTimeout(resolve, 2000)
-        );
-      } catch (err) {
-        failed++;
-      }
-    }
 
     res.json({
-      success: true,
-      sent,
-      failed
+      success: true
     });
+
   } catch (error) {
+
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      error: error.message
     });
   }
 });
@@ -93,5 +75,5 @@ app.post("/send", async (req, res) => {
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on ${PORT}`);
+  console.log(`Server Running ${PORT}`);
 });
