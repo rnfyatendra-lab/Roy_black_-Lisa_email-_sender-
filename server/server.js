@@ -1,60 +1,42 @@
-import express from "express";
-import cors from "cors";
-import nodemailer from "nodemailer";
+const express = require("express");
+const cors = require("cors");
+const nodemailer = require("nodemailer");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 5000;
-
 app.get("/", (req, res) => {
-  res.send("Backend Running...");
+  res.send("Backend Running");
 });
 
 app.post("/send-email", async (req, res) => {
   try {
     const {
-      gmail,
-      password,
       senderName,
-      emails,
+      gmail,
+      appPassword,
       subject,
       message,
+      recipients,
     } = req.body;
-
-    if (
-      !gmail ||
-      !password ||
-      !senderName ||
-      !emails ||
-      emails.length === 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing Fields",
-      });
-    }
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
-
       auth: {
         user: gmail,
-        pass: password,
+        pass: appPassword,
       },
     });
-
-    await transporter.verify();
 
     let sent = 0;
     let failed = 0;
 
-    for (const email of emails) {
+    for (const email of recipients) {
       try {
         await transporter.sendMail({
-          from: `${senderName} <${gmail}>`,
+          from: `"${senderName}" <${gmail}>`,
           to: email,
           subject,
           text: message,
@@ -62,29 +44,31 @@ app.post("/send-email", async (req, res) => {
 
         sent++;
 
-        console.log("Sent:", email);
+        await new Promise((resolve) =>
+          setTimeout(resolve, 400)
+        );
       } catch (err) {
         failed++;
-
-        console.log("Failed:", email);
       }
     }
 
-    return res.json({
+    res.json({
       success: true,
       sent,
       failed,
     });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log(err);
 
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Server Error",
     });
   }
 });
 
+const PORT = process.env.PORT || 10000;
+
 app.listen(PORT, () => {
-  console.log(`Server Running On ${PORT}`);
+  console.log("Server running on port " + PORT);
 });
