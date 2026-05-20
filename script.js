@@ -18,30 +18,39 @@ async function sendEmails() {
   const emails =
     document.getElementById("emails").value;
 
-  const total =
-    emails.split("\n").filter(Boolean).length;
+  const emailList =
+    emails
+      .split("\n")
+      .map(e => e.trim())
+      .filter(Boolean);
 
-  document.getElementById("total").innerText = total;
+  document.getElementById("total").innerText =
+    emailList.length;
 
   document.getElementById("status").innerText =
     "Sending...";
 
   try {
 
-    const response = await fetch("/send-email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        senderName,
-        gmail,
-        appPassword,
-        subject,
-        message,
-        emails
-      })
-    });
+    const response =
+      await fetch("/send-email", {
+
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          senderName,
+          gmail,
+          appPassword,
+          subject,
+          message,
+          emails
+        })
+
+      });
 
     const data = await response.json();
 
@@ -67,4 +76,9 @@ async function sendEmails() {
     document.getElementById("status").innerText =
       "Server Error";
   }
+}
+
+function logoutNow() {
+
+  location.reload();
 }
