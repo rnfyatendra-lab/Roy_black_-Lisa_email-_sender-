@@ -1,5 +1,3 @@
-// FILE NAME: server/server.js
-
 import express from "express";
 import cors from "cors";
 import nodemailer from "nodemailer";
@@ -7,30 +5,12 @@ import nodemailer from "nodemailer";
 const app = express();
 
 app.use(cors());
-
-app.use(
-  express.json({
-    limit: "10mb",
-  })
-);
+app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
 
-const SESSION_TIME = 60 * 60 * 1000;
-
-const BATCH_SIZE = 4;
-const BATCH_DELAY = 400;
-
-const DAILY_LIMIT = 600;
-
-let sentToday = 0;
-let sessionStart = Date.now();
-
-const delay = (ms) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
 app.get("/", (req, res) => {
-  res.send("Backend Running");
+  res.send("Backend Running...");
 });
 
 app.post("/send-email", async (req, res) => {
@@ -48,28 +28,12 @@ app.post("/send-email", async (req, res) => {
       !gmail ||
       !password ||
       !senderName ||
-      !subject ||
-      !message ||
       !emails ||
       emails.length === 0
     ) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields",
-      });
-    }
-
-    const now = Date.now();
-
-    if (now - sessionStart > SESSION_TIME) {
-      sentToday = 0;
-      sessionStart = now;
-    }
-
-    if (sentToday >= DAILY_LIMIT) {
-      return res.status(429).json({
-        success: false,
-        message: "Daily limit reached",
+        message: "Missing Fields",
       });
     }
 
@@ -80,10 +44,6 @@ app.post("/send-email", async (req, res) => {
         user: gmail,
         pass: password,
       },
-
-      pool: true,
-      maxConnections: 4,
-      maxMessages: Infinity,
     });
 
     await transporter.verify();
@@ -91,35 +51,24 @@ app.post("/send-email", async (req, res) => {
     let sent = 0;
     let failed = 0;
 
-    for (let i = 0; i < emails.length; i += BATCH_SIZE) {
-      const batch = emails.slice(i, i + BATCH_SIZE);
+    for (const email of emails) {
+      try {
+        await transporter.sendMail({
+          from: `${senderName} <${gmail}>`,
+          to: email,
+          subject,
+          text: message,
+        });
 
-      await Promise.all(
-        batch.map(async (email) => {
-          try {
-            await transporter.sendMail({
-              from: `${senderName} <${gmail}>`,
-              to: email,
-              subject,
-              text: message,
-            });
+        sent++;
 
-            sent++;
-            sentToday++;
+        console.log("Sent:", email);
+      } catch (err) {
+        failed++;
 
-            console.log(`Sent: ${email}`);
-          } catch (err) {
-            failed++;
-
-            console.log(`Failed: ${email}`);
-          }
-        })
-      );
-
-      await delay(BATCH_DELAY);
+        console.log("Failed:", email);
+      }
     }
-
-    transporter.close();
 
     return res.json({
       success: true,
@@ -137,5 +86,5 @@ app.post("/send-email", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on ${PORT}`);
+  console.log(`Server Running On ${PORT}`);
 });
