@@ -1,14 +1,57 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bulk Mail Sender</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
+<html>
+<head>
+  <title>Bulk Mail Sender</title>
+</head>
+<body style="font-family: Arial; padding: 40px;">
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<h2>Bulk Mail Sender</h2>
+
+<input id="name" placeholder="Your Name"><br><br>
+
+<input id="email" placeholder="Your Gmail"><br><br>
+
+<input id="password" placeholder="App Password"><br><br>
+
+<input id="subject" placeholder="Subject"><br><br>
+
+<textarea id="message" placeholder="Message"></textarea><br><br>
+
+<textarea id="emails" placeholder="Emails comma separated"></textarea><br><br>
+
+<button onclick="sendMail()">Send Mail</button>
+
+<p id="status"></p>
+
+<script>
+async function sendMail() {
+
+  const recipients = document
+    .getElementById("emails")
+    .value
+    .split(",");
+
+  const response = await fetch("/send-email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      senderName: document.getElementById("name").value,
+      senderEmail: document.getElementById("email").value,
+      appPassword: document.getElementById("password").value,
+      subject: document.getElementById("subject").value,
+      message: document.getElementById("message").value,
+      recipients
+    })
+  });
+
+  const data = await response.json();
+
+  document.getElementById("status").innerHTML =
+    "Sent: " + data.sent + " Failed: " + data.failed;
+}
+</script>
+
+</body>
 </html>
