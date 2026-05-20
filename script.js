@@ -1,139 +1,82 @@
 async function sendEmails() {
 
   const senderName =
-    document.getElementById("senderName").value.trim();
+    document.getElementById("senderName").value;
 
   const gmail =
-    document.getElementById("gmail").value.trim();
+    document.getElementById("gmail").value;
 
   const appPassword =
-    document.getElementById("appPassword").value.trim();
+    document.getElementById("appPassword").value;
 
   const subject =
-    document.getElementById("subject").value.trim();
+    document.getElementById("subject").value;
 
   const message =
-    document.getElementById("message").value.trim();
+    document.getElementById("message").value;
 
   const emails =
-    document.getElementById("emails").value.trim();
-
-  const totalBox =
-    document.getElementById("total");
-
-  const sentBox =
-    document.getElementById("sent");
-
-  const failedBox =
-    document.getElementById("failed");
-
-  const statusBox =
-    document.getElementById("status");
-
-  if(
-    !senderName ||
-    !gmail ||
-    !appPassword ||
-    !subject ||
-    !message ||
-    !emails
-  ){
-    alert("Please fill all fields");
-    return;
-  }
+    document.getElementById("emails").value;
 
   const emailList = emails
     .split(/[\n,]+/)
-    .map(e => e.trim())
     .filter(Boolean);
 
-  totalBox.innerText = emailList.length;
+  document.getElementById("total").innerText =
+    emailList.length;
 
-  sentBox.innerText = "0";
-  failedBox.innerText = "0";
+  document.getElementById("status").innerText =
+    "Sending...";
 
-  statusBox.innerText = "Sending...";
+  try {
 
-  try{
-
-    const response = await fetch("/send",{
-
-      method:"POST",
-
-      headers:{
-        "Content-Type":"application/json"
+    const response = await fetch("/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
       },
-
-      body:JSON.stringify({
-
+      body: JSON.stringify({
         senderName,
         gmail,
         appPassword,
         subject,
         message,
-
-        recipients:emailList.join(",")
+        emails
       })
     });
 
     const data = await response.json();
 
-    if(data.success){
+    if (data.success) {
 
-      sentBox.innerText = data.sent;
-      failedBox.innerText = data.failed;
+      document.getElementById("sent").innerText =
+        data.sent;
 
-      statusBox.innerText = "Completed";
+      document.getElementById("failed").innerText =
+        data.failed;
 
-      statusBox.style.color = "green";
+      document.getElementById("status").innerText =
+        "Completed";
 
       alert("Emails Sent Successfully");
 
-    }else{
+    } else {
 
-      statusBox.innerText = "Failed";
+      document.getElementById("status").innerText =
+        "Error";
 
-      statusBox.style.color = "red";
-
-      alert(data.message || "Server Error");
+      alert(data.message);
     }
 
-  }catch(error){
+  } catch (err) {
 
-    console.log(error);
-
-    statusBox.innerText = "Server Error";
-
-    statusBox.style.color = "red";
+    document.getElementById("status").innerText =
+      "Server Error";
 
     alert("Cannot connect to server");
   }
 }
 
-function logout(){
-
-  document.getElementById("senderName").value = "";
-
-  document.getElementById("gmail").value = "";
-
-  document.getElementById("appPassword").value = "";
-
-  document.getElementById("subject").value = "";
-
-  document.getElementById("message").value = "";
-
-  document.getElementById("emails").value = "";
-
-  document.getElementById("total").innerText = "0";
-
-  document.getElementById("sent").innerText = "0";
-
-  document.getElementById("failed").innerText = "0";
-
-  const statusBox =
-    document.getElementById("status");
-
-  statusBox.innerText = "Idle";
-
-  statusBox.style.color = "black";
+function logoutUser(){
+  location.reload();
 }
