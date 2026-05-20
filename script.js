@@ -1,11 +1,13 @@
 const HOURLY_LIMIT = 28;
-const PARALLEL = 1;
-const DELAY_MS = 2000;
+const PARALLEL = 2;
+const DELAY_MS = 4500;
 
-let stats = {};
+let hourlyStats = {
+  count: 0
+};
 
 setInterval(() => {
-  stats = {};
+  hourlyStats.count = 0;
 }, 60 * 60 * 1000);
 
 async function sendEmails() {
@@ -51,6 +53,22 @@ async function sendEmails() {
     return;
   }
 
+  if (
+    hourlyStats.count + emailList.length >
+    HOURLY_LIMIT
+  ) {
+    alert(
+      "Hourly limit reached. Please wait."
+    );
+    return;
+  }
+
+  sendBtn.disabled = true;
+
+  sendBtn.innerText = "Sending...";
+
+  status.innerText = "Sending...";
+
   document.getElementById("total").innerText =
     emailList.length;
 
@@ -58,68 +76,61 @@ async function sendEmails() {
 
   document.getElementById("failed").innerText = "0";
 
-  status.innerText = "Sending...";
-
-  sendBtn.disabled = true;
-
-  sendBtn.innerText = "Sending...";
-
   let sent = 0;
   let failed = 0;
 
   try {
 
-    for (let i = 0; i < emailList.length; i += PARALLEL) {
+    for (let i = 0; i < emailList.length; i++) {
 
-      const batch =
-        emailList.slice(i, i + PARALLEL);
+      const email = emailList[i];
 
-      await Promise.all(
+      try {
 
-        batch.map(async (email) => {
+        const response =
+          await fetch("/send", {
 
-          try {
+            method: "POST",
 
-            const response =
-              await fetch("/send", {
+            headers: {
+              "Content-Type": "application/json"
+            },
 
-                method: "POST",
+            body: JSON.stringify({
+              senderName,
+              gmail,
+              appPassword,
+              subject,
+              message,
+              emails: email
+            })
 
-                headers: {
-                  "Content-Type": "application/json"
-                },
+          });
 
-                body: JSON.stringify({
-                  senderName,
-                  gmail,
-                  appPassword,
-                  subject,
-                  message,
-                  emails: email
-                })
-              });
+        const data =
+          await response.json();
 
-            const data = await response.json();
+        if (data.success) {
 
-            if (data.success) {
-              sent++;
-            } else {
-              failed++;
-            }
+          sent++;
 
-          } catch (err) {
-            failed++;
-          }
+          hourlyStats.count++;
 
-          document.getElementById("sent").innerText =
-            sent;
+        } else {
 
-          document.getElementById("failed").innerText =
-            failed;
+          failed++;
+        }
 
-        })
+      } catch (err) {
 
-      );
+        failed++;
+      }
+
+      document.getElementById("sent").innerText =
+        sent;
+
+      document.getElementById("failed").innerText =
+        failed;
 
       await new Promise(resolve =>
         setTimeout(resolve, DELAY_MS)
@@ -132,7 +143,7 @@ async function sendEmails() {
 
     sendBtn.innerText = "Send All";
 
-    alert("All Emails Sent");
+    alert("Emails Sent Successfully");
 
   } catch (err) {
 
