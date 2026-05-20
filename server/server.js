@@ -11,9 +11,6 @@ app.get("/", (req, res) => {
   res.send("Backend Running");
 });
 
-const BATCH_SIZE = 4;
-const BATCH_DELAY = 400;
-
 app.post("/send-email", async (req, res) => {
   try {
     const {
@@ -25,6 +22,19 @@ app.post("/send-email", async (req, res) => {
       recipients,
     } = req.body;
 
+    if (
+      !gmail ||
+      !appPassword ||
+      !subject ||
+      !message ||
+      !recipients
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing fields",
+      });
+    }
+
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -33,33 +43,29 @@ app.post("/send-email", async (req, res) => {
       },
     });
 
+    await transporter.verify();
+
     let sent = 0;
     let failed = 0;
 
-    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-      const batch = recipients.slice(i, i + BATCH_SIZE);
+    for (const email of recipients) {
+      try {
+        await transporter.sendMail({
+          from: `"${senderName}" <${gmail}>`,
+          to: email,
+          subject: subject,
+          text: message,
+        });
 
-      await Promise.all(
-        batch.map(async (email) => {
-          try {
-            await transporter.sendMail({
-              from: `"${senderName}" <${gmail}>`,
-              to: email,
-              subject,
-              text: message,
-            });
+        sent++;
 
-            sent++;
-          } catch (err) {
-            console.log(err);
-            failed++;
-          }
-        })
-      );
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, BATCH_DELAY)
-      );
+        await new Promise((resolve) =>
+          setTimeout(resolve, 500)
+        );
+      } catch (err) {
+        console.log("MAIL FAIL:", err.message);
+        failed++;
+      }
     }
 
     res.json({
@@ -68,11 +74,11 @@ app.post("/send-email", async (req, res) => {
       failed,
     });
   } catch (err) {
-    console.log(err);
+    console.log("SERVER ERROR:", err);
 
     res.status(500).json({
       success: false,
-      message: "Server Error",
+      message: err.message,
     });
   }
 });
@@ -80,5 +86,5 @@ app.post("/send-email", async (req, res) => {
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on ${PORT}`);
+  console.log("Server running on " + PORT);
 });
