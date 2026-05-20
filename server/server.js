@@ -1,6 +1,6 @@
 const express = require("express");
-const nodemailer = require("nodemailer");
 const cors = require("cors");
+const nodemailer = require("nodemailer");
 
 const app = express();
 
@@ -8,12 +8,19 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("Server Running Successfully");
+  res.send("Server Running");
 });
 
 app.post("/send-email", async (req, res) => {
   try {
-    const { senderEmail, appPassword, to, subject, message } = req.body;
+    const {
+      senderName,
+      senderEmail,
+      appPassword,
+      subject,
+      message,
+      recipients,
+    } = req.body;
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -23,24 +30,35 @@ app.post("/send-email", async (req, res) => {
       },
     });
 
-    await transporter.sendMail({
-      from: senderEmail,
-      to: to,
-      subject: subject,
-      text: message,
-    });
+    let success = 0;
+    let failed = 0;
+
+    for (const email of recipients) {
+      try {
+        await transporter.sendMail({
+          from: `"${senderName}" <${senderEmail}>`,
+          to: email,
+          subject: subject,
+          text: message,
+        });
+
+        success++;
+      } catch (err) {
+        failed++;
+      }
+    }
 
     res.json({
       success: true,
-      message: "Email Sent Successfully",
+      sent: success,
+      failed: failed,
     });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log(err);
 
     res.status(500).json({
       success: false,
       message: "Server Error",
-      error: error.message,
     });
   }
 });
@@ -48,5 +66,5 @@ app.post("/send-email", async (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server started on port " + PORT);
 });
