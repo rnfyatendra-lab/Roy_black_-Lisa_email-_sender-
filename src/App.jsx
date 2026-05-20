@@ -1,64 +1,43 @@
-// FILE NAME: src/App.jsx
-
 import { useState } from "react";
 
 export default function App() {
-  const [gmail, setGmail] = useState("");
-  const [password, setPassword] = useState("");
   const [senderName, setSenderName] = useState("");
-  const [emails, setEmails] = useState("");
+  const [gmail, setGmail] = useState("");
+  const [appPassword, setAppPassword] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [recipients, setRecipients] = useState("");
 
   const [total, setTotal] = useState(0);
   const [sent, setSent] = useState(0);
   const [failed, setFailed] = useState(0);
-  const [status, setStatus] = useState("Ready");
-  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("Idle");
 
   const sendEmails = async () => {
-    const emailList = emails
-      .split(/[\n,]+/)
-      .map((e) => e.trim())
-      .filter((e) => e !== "");
-
-    if (
-      !gmail ||
-      !password ||
-      !senderName ||
-      !subject ||
-      !message ||
-      emailList.length === 0
-    ) {
-      alert("Fill all fields");
-      return;
-    }
-
-    setLoading(true);
-
-    setTotal(emailList.length);
-    setSent(0);
-    setFailed(0);
-
     try {
       setStatus("Sending...");
 
+      const emailList = recipients
+        .split(/[\n,]+/)
+        .map((e) => e.trim())
+        .filter((e) => e);
+
+      setTotal(emailList.length);
+
       const response = await fetch(
-        "https://YOUR-BACKEND.onrender.com/send-email",
+        "https://roy-black-lisa-email-sender.onrender.com/send-email",
         {
           method: "POST",
-
           headers: {
             "Content-Type": "application/json",
           },
-
           body: JSON.stringify({
-            gmail,
-            password,
             senderName,
-            emails: emailList,
+            gmail,
+            appPassword,
             subject,
             message,
+            recipients: emailList,
           }),
         }
       );
@@ -70,144 +49,208 @@ export default function App() {
         setFailed(data.failed);
         setStatus("Completed");
       } else {
-        setStatus(data.message || "Failed");
+        setStatus("Server Error");
       }
-    } catch (error) {
+    } catch (err) {
+      console.log(err);
       setStatus("Server Error");
     }
-
-    setLoading(false);
-  };
-
-  const clearAll = () => {
-    setGmail("");
-    setPassword("");
-    setSenderName("");
-    setEmails("");
-    setSubject("");
-    setMessage("");
-    setTotal(0);
-    setSent(0);
-    setFailed(0);
-    setStatus("Ready");
   };
 
   const logout = () => {
-    clearAll();
-
     localStorage.clear();
-
     window.location.reload();
   };
 
   return (
-    <div className="min-h-screen bg-[#eef2f7] flex items-center justify-center p-5">
-
-      <div className="w-full max-w-6xl bg-white rounded-[30px] shadow-lg p-10">
-
-        <h1 className="text-center text-4xl font-bold mb-10">
-          Fast Mail Launcher
-        </h1>
-
-        <div className="grid md:grid-cols-2 gap-6">
-
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#eef2f7",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "20px",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "1100px",
+          background: "#fff",
+          borderRadius: "20px",
+          padding: "40px",
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "20px",
+          }}
+        >
           <input
-            type="text"
             placeholder="Sender Name"
             value={senderName}
             onChange={(e) => setSenderName(e.target.value)}
-            className="border border-gray-300 rounded-2xl p-5 text-2xl outline-none"
+            className="input"
           />
 
           <input
-            type="email"
             placeholder="Your Gmail"
             value={gmail}
             onChange={(e) => setGmail(e.target.value)}
-            className="border border-gray-300 rounded-2xl p-5 text-2xl outline-none"
+            className="input"
           />
 
           <input
-            type="password"
             placeholder="App Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="border border-gray-300 rounded-2xl p-5 text-2xl outline-none"
+            type="password"
+            value={appPassword}
+            onChange={(e) => setAppPassword(e.target.value)}
+            className="input"
           />
 
           <input
-            type="text"
             placeholder="Subject"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            className="border border-gray-300 rounded-2xl p-5 text-2xl outline-none"
+            className="input"
           />
 
           <textarea
-            rows={8}
             placeholder="Message Body"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="border border-gray-300 rounded-2xl p-5 text-2xl resize-none outline-none"
+            className="textarea"
           />
 
           <textarea
-            rows={8}
-            placeholder="Recipients (comma or newline)"
-            value={emails}
-            onChange={(e) => setEmails(e.target.value)}
-            className="border border-gray-300 rounded-2xl p-5 text-2xl resize-none outline-none"
+            placeholder="Recipients"
+            value={recipients}
+            onChange={(e) => setRecipients(e.target.value)}
+            className="textarea"
           />
         </div>
 
-        <div className="grid md:grid-cols-[1fr_180px] gap-6 mt-8">
-
+        <div
+          style={{
+            display: "flex",
+            gap: "20px",
+            marginTop: "20px",
+          }}
+        >
           <button
             onClick={sendEmails}
-            disabled={loading}
-            className="bg-blue-500 hover:bg-blue-600 transition-all text-white text-3xl font-bold rounded-2xl py-6"
+            style={{
+              flex: 1,
+              background: "#3478f6",
+              color: "#fff",
+              border: "none",
+              height: "70px",
+              borderRadius: "14px",
+              fontSize: "32px",
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
           >
-            {loading ? "Sending..." : "Send All"}
+            Send All
           </button>
 
           <button
             onDoubleClick={logout}
-            className="bg-blue-500 hover:bg-blue-600 transition-all text-white text-2xl font-bold rounded-2xl py-6"
+            style={{
+              width: "180px",
+              background: "#3478f6",
+              color: "#fff",
+              border: "none",
+              borderRadius: "14px",
+              fontSize: "28px",
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
           >
             Logout
           </button>
         </div>
 
-        <p className="text-center text-gray-500 mt-2">
+        <p
+          style={{
+            textAlign: "center",
+            marginTop: "10px",
+            color: "#777",
+          }}
+        >
           Double-click logout button
         </p>
 
-        <div className="mt-10 grid md:grid-cols-4 gap-5">
-
-          <div className="bg-gray-100 rounded-2xl p-5 text-center">
-            <p className="text-gray-500 text-lg">Total</p>
-            <h2 className="text-4xl font-bold">{total}</h2>
-          </div>
-
-          <div className="bg-gray-100 rounded-2xl p-5 text-center">
-            <p className="text-gray-500 text-lg">Sent</p>
-            <h2 className="text-4xl font-bold text-green-600">
-              {sent}
-            </h2>
-          </div>
-
-          <div className="bg-gray-100 rounded-2xl p-5 text-center">
-            <p className="text-gray-500 text-lg">Failed</p>
-            <h2 className="text-4xl font-bold text-red-600">
-              {failed}
-            </h2>
-          </div>
-
-          <div className="bg-gray-100 rounded-2xl p-5 text-center">
-            <p className="text-gray-500 text-lg">Status</p>
-            <h2 className="text-xl font-bold">{status}</h2>
-          </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4,1fr)",
+            gap: "20px",
+            marginTop: "30px",
+          }}
+        >
+          <Box title="Total" value={total} />
+          <Box title="Sent" value={sent} green />
+          <Box title="Failed" value={failed} red />
+          <Box title="Status" value={status} />
         </div>
+      </div>
+
+      <style>{`
+        .input{
+          height:70px;
+          border-radius:14px;
+          border:2px solid #ddd;
+          padding:0 20px;
+          font-size:30px;
+          outline:none;
+        }
+
+        .textarea{
+          height:220px;
+          border-radius:14px;
+          border:2px solid #ddd;
+          padding:20px;
+          font-size:28px;
+          outline:none;
+          resize:none;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function Box({ title, value, green, red }) {
+  return (
+    <div
+      style={{
+        background: "#f5f5f5",
+        borderRadius: "14px",
+        padding: "20px",
+        textAlign: "center",
+      }}
+    >
+      <div
+        style={{
+          color: "#777",
+          fontSize: "24px",
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          marginTop: "10px",
+          fontSize: "42px",
+          fontWeight: "bold",
+          color: green ? "green" : red ? "red" : "#000",
+        }}
+      >
+        {value}
       </div>
     </div>
   );
