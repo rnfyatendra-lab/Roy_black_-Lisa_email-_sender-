@@ -1,6 +1,6 @@
 const HOURLY_LIMIT = 28;
-const PARALLEL = 2;
-const DELAY_MS = 200;
+const PARALLEL = 1;
+const DELAY_MS = 2000;
 
 let stats = {};
 
