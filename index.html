@@ -1,57 +1,120 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bulk Mail Sender</title>
+
+  <link rel="stylesheet" href="style.css">
 </head>
-<body style="font-family: Arial; padding: 40px;">
 
-<h2>Bulk Mail Sender</h2>
+<body>
 
-<input id="name" placeholder="Your Name"><br><br>
+<div class="main-box">
 
-<input id="email" placeholder="Your Gmail"><br><br>
+  <div class="top-grid">
 
-<input id="password" placeholder="App Password"><br><br>
+    <input
+      type="text"
+      id="senderName"
+      placeholder="Alex"
+    >
 
-<input id="subject" placeholder="Subject"><br><br>
+    <input
+      type="email"
+      id="gmail"
+      placeholder="yourgmail@gmail.com"
+    >
 
-<textarea id="message" placeholder="Message"></textarea><br><br>
+    <input
+      type="password"
+      id="appPassword"
+      placeholder="App Password"
+    >
 
-<textarea id="emails" placeholder="Emails comma separated"></textarea><br><br>
+    <input
+      type="text"
+      id="subject"
+      placeholder="Directory"
+    >
 
-<button onclick="sendMail()">Send Mail</button>
+    <textarea
+      id="message"
+      placeholder="Write message here..."
+    ></textarea>
 
-<p id="status"></p>
+    <textarea
+      id="emails"
+      placeholder="Enter emails here..."
+    ></textarea>
 
-<script>
-async function sendMail() {
+  </div>
 
-  const recipients = document
-    .getElementById("emails")
-    .value
-    .split(",");
+  <div class="button-row">
 
-  const response = await fetch("/send-email", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      senderName: document.getElementById("name").value,
-      senderEmail: document.getElementById("email").value,
-      appPassword: document.getElementById("password").value,
-      subject: document.getElementById("subject").value,
-      message: document.getElementById("message").value,
-      recipients
-    })
-  });
+    <button
+      class="send-btn"
+      onclick="sendEmails()"
+    >
+      Send All
+    </button>
 
-  const data = await response.json();
+    <button
+      class="logout-btn"
+      onclick="logoutNow()"
+    >
+      Logout
+    </button>
 
-  document.getElementById("status").innerHTML =
-    "Sent: " + data.sent + " Failed: " + data.failed;
-}
-</script>
+  </div>
+
+  <p class="logout-text">
+    Double-click logout button
+  </p>
+
+  <div class="stats-grid">
+
+    <div class="card">
+      <h3>Total</h3>
+      <h1 id="total">0</h1>
+    </div>
+
+    <div class="card">
+      <h3>Sent</h3>
+      <h1
+        id="sent"
+        class="green"
+      >
+        0
+      </h1>
+    </div>
+
+    <div class="card">
+      <h3>Failed</h3>
+      <h1
+        id="failed"
+        class="red"
+      >
+        0
+      </h1>
+    </div>
+
+    <div class="card">
+      <h3>Status</h3>
+      <h1
+        id="status"
+        class="status-text"
+      >
+        Ready
+      </h1>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="script.js"></script>
 
 </body>
 </html>
