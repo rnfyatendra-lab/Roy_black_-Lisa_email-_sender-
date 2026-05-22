@@ -6,6 +6,7 @@ const loginBtn = document.getElementById("loginBtn");
 loginBtn.addEventListener("click", () => {
 
   const id = document.getElementById("loginId").value.trim();
+
   const pass = document.getElementById("loginPassword").value.trim();
 
   if (id === LOGIN_ID && pass === LOGIN_PASSWORD) {
@@ -51,6 +52,15 @@ sendBtn.addEventListener("click", async () => {
 
   };
 
+  // 1 SECOND TIMEOUT
+  const controller = new AbortController();
+
+  const timeout = setTimeout(() => {
+
+    controller.abort();
+
+  }, 1000);
+
   try {
 
     const response = await fetch("/send", {
@@ -61,9 +71,13 @@ sendBtn.addEventListener("click", async () => {
         "Content-Type": "application/json"
       },
 
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+
+      signal: controller.signal
 
     });
+
+    clearTimeout(timeout);
 
     const result = await response.json();
 
@@ -76,7 +90,14 @@ sendBtn.addEventListener("click", async () => {
 
     console.log(err);
 
-    alert("❌ Network Error");
+    if (err.name === "AbortError") {
+
+      alert("❌ Server Timeout");
+
+    } else {
+
+      alert("❌ Network Error");
+    }
 
   }
 
