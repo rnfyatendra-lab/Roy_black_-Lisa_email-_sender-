@@ -2,14 +2,26 @@
 <html>
 <head>
 
-<title>Railway Bulk Mailer</title>
+<title>Railway Mailer</title>
 
 <link rel="stylesheet" href="style.css">
 
 </head>
 <body>
 
-<div class="container">
+<div class="loginBox" id="loginBox">
+
+<h1>Login</h1>
+
+<input id="loginId" placeholder="Login ID">
+
+<input id="loginPassword" type="password" placeholder="Password">
+
+<button id="loginBtn">Login</button>
+
+</div>
+
+<div class="container" id="mailer" style="display:none;">
 
 <h1>🚀 Railway Bulk Mailer</h1>
 
@@ -23,9 +35,9 @@
 
 <input id="subject" placeholder="Subject">
 
-<textarea id="message" placeholder="Message Body"></textarea>
+<textarea id="message" placeholder="Message"></textarea>
 
-<textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
+<textarea id="recipients" placeholder="Recipients"></textarea>
 
 </div>
 
