@@ -29,7 +29,7 @@ app.post("/send", async (req, res) => {
 
   try {
 
-    const {
+    let {
       senderName,
       gmail,
       appPassword,
@@ -37,6 +37,9 @@ app.post("/send", async (req, res) => {
       message,
       recipients
     } = req.body;
+
+    gmail = gmail.trim();
+    appPassword = appPassword.trim();
 
     if (
       !gmail ||
@@ -60,8 +63,6 @@ app.post("/send", async (req, res) => {
 
       secure: false,
 
-      requireTLS: true,
-
       auth: {
         user: gmail,
         pass: appPassword
@@ -69,11 +70,7 @@ app.post("/send", async (req, res) => {
 
       tls: {
         rejectUnauthorized: false
-      },
-
-      connectionTimeout: 5000,
-      greetingTimeout: 5000,
-      socketTimeout: 5000
+      }
 
     });
 
@@ -113,8 +110,6 @@ app.post("/send", async (req, res) => {
 
               text: message,
 
-              priority: "high",
-
               html: `
                 <div style="font-family:Arial;padding:20px;">
                   ${message.replace(/\n/g, "<br>")}
@@ -131,7 +126,7 @@ app.post("/send", async (req, res) => {
 
             failed++;
 
-            console.log(err.message);
+            console.log(err);
 
           }
 
@@ -142,19 +137,16 @@ app.post("/send", async (req, res) => {
       await sleep(BATCH_DELAY);
     }
 
-    if (sent === 0) {
-
-      return res.json({
-        success: false,
-        popup: "❌ Wrong App Password"
-      });
-    }
-
     return res.json({
+
       success: true,
+
       popup: `✅ Mail Sent ${sent}`,
+
       sent,
+
       failed
+
     });
 
   } catch (err) {
@@ -162,9 +154,13 @@ app.post("/send", async (req, res) => {
     console.log(err);
 
     return res.json({
+
       success: false,
-      popup: "❌ Server Timeout"
+
+      popup: "❌ Server Error"
+
     });
+
   }
 
 });
