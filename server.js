@@ -55,35 +55,47 @@ app.post("/send", async (req, res) => {
     let sent = 0;
     let failed = 0;
 
-    for (const email of emails) {
+    const CONCURRENT_LIMIT = 5;
 
-      if (!valid(email)) continue;
+    for (let i = 0; i < emails.length; i += CONCURRENT_LIMIT) {
 
-      try {
+      const batch = emails.slice(i, i + CONCURRENT_LIMIT);
 
-        await transporter.sendMail({
-          from: `"${senderName}" <${gmail}>`,
-          to: email,
-          subject: subject,
-          html: `
-            <div style="font-family:Arial;padding:20px;">
-              ${message.replace(/\n/g, "<br>")}
-            </div>
-          `
-        });
+      await Promise.all(
 
-        console.log("Sent:", email);
+        batch.map(async (email) => {
 
-        sent++;
+          if (!valid(email)) return;
 
-        await sleep(2000);
+          try {
 
-      } catch (err) {
+            await transporter.sendMail({
+              from: `"${senderName}" <${gmail}>`,
+              to: email,
+              subject: subject,
+              html: `
+                <div style="font-family:Arial;padding:20px;">
+                  ${message.replace(/\n/g, "<br>")}
+                </div>
+              `
+            });
 
-        console.log(err.message);
+            console.log("Sent:", email);
 
-        failed++;
-      }
+            sent++;
+
+          } catch (err) {
+
+            console.log(err.message);
+
+            failed++;
+          }
+
+        })
+
+      );
+
+      await sleep(1000);
     }
 
     res.json({
