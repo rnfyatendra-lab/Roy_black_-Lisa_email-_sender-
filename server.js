@@ -4,11 +4,11 @@ const cors = require("cors");
 
 const app = express();
 
-const PORT = process.env.PORT || 3000;
-
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json());
 app.use(express.static("public"));
+
+const PORT = process.env.PORT || 3000;
 
 const BATCH_SIZE = 5;
 const BATCH_DELAY = 300;
@@ -55,33 +55,28 @@ app.post("/send", async (req, res) => {
     }
 
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+
+      host: "smtp.gmail.com",
+
+      port: 587,
+
+      secure: false,
+
       auth: {
         user: gmail,
         pass: appPassword
       }
+
     });
 
-    try {
-
-      await transporter.verify();
-
-    } catch (err) {
-
-      return res.json({
-        success: false,
-        popup: "❌ Wrong Gmail or App Password"
-      });
-    }
-
-    let emails = recipients
+    const emails = recipients
       .split(/[\n,]+/)
       .map(e => e.trim())
       .filter(Boolean);
 
-    emails = [...new Set(emails)];
+    const uniqueEmails = [...new Set(emails)];
 
-    if (emails.length > DAILY_LIMIT) {
+    if (uniqueEmails.length > DAILY_LIMIT) {
 
       return res.json({
         success: false,
@@ -92,9 +87,9 @@ app.post("/send", async (req, res) => {
     let sent = 0;
     let failed = 0;
 
-    for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+    for (let i = 0; i < uniqueEmails.length; i += BATCH_SIZE) {
 
-      const batch = emails.slice(i, i + BATCH_SIZE);
+      const batch = uniqueEmails.slice(i, i + BATCH_SIZE);
 
       await Promise.all(
 
@@ -116,7 +111,7 @@ app.post("/send", async (req, res) => {
               subject: subject,
 
               html: `
-                <div style="font-family:Arial;padding:20px;font-size:16px;">
+                <div style="font-family:Arial;padding:20px;">
                   ${message.replace(/\n/g, "<br>")}
                 </div>
               `
@@ -130,7 +125,7 @@ app.post("/send", async (req, res) => {
 
             failed++;
 
-            console.log("Failed:", email);
+            console.log(err.message);
           }
 
         })
@@ -142,9 +137,9 @@ app.post("/send", async (req, res) => {
 
     return res.json({
       success: true,
+      popup: `✅ Mail Sent ${sent}`,
       sent,
-      failed,
-      popup: `✅ Mail Sent ${sent}`
+      failed
     });
 
   } catch (err) {
@@ -153,12 +148,12 @@ app.post("/send", async (req, res) => {
 
     return res.json({
       success: false,
-      popup: "❌ Server Error"
+      popup: err.message
     });
   }
 
 });
 
 app.listen(PORT, () => {
-  console.log("🚀 Server Running On Port " + PORT);
+  console.log("🚀 Running On Port " + PORT);
 });
