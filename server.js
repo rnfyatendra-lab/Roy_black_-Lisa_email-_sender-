@@ -5,17 +5,10 @@ const cors = require("cors");
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json());
 app.use(express.static("public"));
 
 const PORT = process.env.PORT || 3000;
-
-const BATCH_SIZE = 5;
-const BATCH_DELAY = 300;
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function valid(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -45,6 +38,7 @@ app.post("/send", async (req, res) => {
       !message ||
       !recipients
     ) {
+
       return res.json({
         success: false,
         popup: "❌ Fill All Fields"
@@ -53,7 +47,6 @@ app.post("/send", async (req, res) => {
 
     const cleanPass = appPassword.replace(/\s/g, "");
 
-    // FIXED SMTP
     const transporter = nodemailer.createTransport({
 
       host: "smtp.gmail.com",
@@ -63,22 +56,18 @@ app.post("/send", async (req, res) => {
       auth: {
         user: gmail,
         pass: cleanPass
-      },
-
-      tls: {
-        rejectUnauthorized: false
       }
 
     });
 
-    // FAST LOGIN CHECK
+    // instant login test
     try {
 
       await transporter.verify();
 
-    } catch (err) {
+    } catch (e) {
 
-      console.log("LOGIN ERROR:", err);
+      console.log(e);
 
       return res.json({
         success: false,
@@ -100,71 +89,46 @@ app.post("/send", async (req, res) => {
     }
 
     let sent = 0;
-    let failed = 0;
 
-    for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+    for (const email of emails) {
 
-      const batch = emails.slice(i, i + BATCH_SIZE);
+      try {
 
-      await Promise.all(
+        await transporter.sendMail({
 
-        batch.map(async (email) => {
+          from: `"${senderName || gmail}" <${gmail}>`,
 
-          try {
+          to: email,
 
-            await transporter.sendMail({
+          subject: subject,
 
-              from: `"${senderName || gmail}" <${gmail}>`,
+          text: message,
 
-              to: email,
+          html: `
+            <div style="font-family:Arial;padding:20px;">
+              ${message.replace(/\n/g, "<br>")}
+            </div>
+          `
+        });
 
-              subject: subject,
+        sent++;
 
-              text: message,
+        console.log("MAIL SENT:", email);
 
-              html: `
-                <div style="font-family:Arial;padding:20px;">
-                  ${message.replace(/\n/g, "<br>")}
-                </div>
-              `
-            });
+      } catch (err) {
 
-            sent++;
-
-            console.log("SENT:", email);
-
-          } catch (err) {
-
-            failed++;
-
-            console.log("MAIL ERROR:", err.message);
-          }
-
-        })
-
-      );
-
-      await sleep(BATCH_DELAY);
-    }
-
-    if (sent === 0) {
-
-      return res.json({
-        success: false,
-        popup: "❌ Gmail Blocked Sending"
-      });
+        console.log(err.message);
+      }
     }
 
     return res.json({
       success: true,
-      popup: `✅ Mail Sent ${sent}`,
-      sent,
-      failed
+      popup: `✅ Mail Sent ${sent}`
     });
 
   } catch (err) {
 
-    console.log("SERVER ERROR:", err);
+    console.log(err);
 
     return res.json({
       success: false,
