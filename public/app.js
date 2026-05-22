@@ -5,8 +5,8 @@ const loginBtn = document.getElementById("loginBtn");
 
 loginBtn.addEventListener("click", () => {
 
-  const id = document.getElementById("loginId").value;
-  const pass = document.getElementById("loginPassword").value;
+  const id = document.getElementById("loginId").value.trim();
+  const pass = document.getElementById("loginPassword").value.trim();
 
   if (id === LOGIN_ID && pass === LOGIN_PASSWORD) {
 
@@ -48,6 +48,7 @@ sendBtn.addEventListener("click", async () => {
 
     recipients:
       document.getElementById("recipients").value
+
   };
 
   try {
@@ -73,7 +74,10 @@ sendBtn.addEventListener("click", async () => {
 
   } catch (err) {
 
+    console.log(err);
+
     alert("❌ Network Error");
+
   }
 
   sendBtn.disabled = false;
