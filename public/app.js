@@ -1,45 +1,61 @@
 const sendBtn = document.getElementById("sendBtn");
-const result = document.getElementById("result");
 
 sendBtn.addEventListener("click", async () => {
 
-  result.innerHTML = "Sending...";
+  document.getElementById("result").innerHTML = "Sending...";
 
   const data = {
-    senderName: document.getElementById("senderName").value,
-    gmail: document.getElementById("gmail").value,
-    appPassword: document.getElementById("appPassword").value,
-    subject: document.getElementById("subject").value,
-    message: document.getElementById("message").value,
-    recipients: document.getElementById("recipients").value
+
+    senderName:
+      document.getElementById("senderName").value,
+
+    gmail:
+      document.getElementById("gmail").value,
+
+    appPassword:
+      document.getElementById("appPassword").value,
+
+    subject:
+      document.getElementById("subject").value,
+
+    message:
+      document.getElementById("message").value,
+
+    recipients:
+      document.getElementById("recipients").value
   };
 
   try {
 
     const response = await fetch("/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
+
+      method:"POST",
+
+      headers:{
+        "Content-Type":"application/json"
       },
-      body: JSON.stringify(data)
+
+      body:JSON.stringify(data)
+
     });
 
-    const resultData = await response.json();
+    const result = await response.json();
 
-    if (resultData.success) {
+    if(result.success){
 
-      result.innerHTML = `
-        ✅ Sent: ${resultData.sent}<br>
-        ❌ Failed: ${resultData.failed}
-      `;
+      document.getElementById("result").innerHTML =
+        `✅ Sent: ${result.sent} | ❌ Failed: ${result.failed}`;
 
-    } else {
+    }else{
 
-      result.innerHTML = `❌ ${resultData.message}`;
+      document.getElementById("result").innerHTML =
+        `❌ ${result.message}`;
     }
 
-  } catch (err) {
+  } catch(err){
 
-    result.innerHTML = err.message;
+    document.getElementById("result").innerHTML =
+      err.message;
   }
+
 });
