@@ -5,21 +5,16 @@ const cors = require("cors");
 const app = express();
 
 app.use(cors());
-
-app.use(express.json({
-  limit: "10mb"
-}));
-
+app.use(express.json({ limit: "10mb" }));
 app.use(express.static("public"));
 
 const PORT = process.env.PORT || 3000;
 
 const BATCH_SIZE = 5;
 const BATCH_DELAY = 300;
-const DAILY_LIMIT = 500;
 
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function valid(email) {
@@ -43,8 +38,6 @@ app.post("/send", async (req, res) => {
       recipients
     } = req.body;
 
-    // VALIDATION
-
     if (
       !gmail ||
       !appPassword ||
@@ -52,55 +45,40 @@ app.post("/send", async (req, res) => {
       !message ||
       !recipients
     ) {
-
       return res.json({
         success: false,
         popup: "❌ Fill All Fields"
       });
     }
 
-    // SMTP
+    const cleanPass = appPassword.replace(/\s/g, "");
 
+    // FIXED SMTP
     const transporter = nodemailer.createTransport({
 
       host: "smtp.gmail.com",
-
       port: 465,
-
       secure: true,
 
       auth: {
         user: gmail,
-        pass: appPassword
+        pass: cleanPass
       },
 
-      connectionTimeout: 10000,
-
-      greetingTimeout: 10000,
-
-      socketTimeout: 10000
+      tls: {
+        rejectUnauthorized: false
+      }
 
     });
 
-    // VERIFY LOGIN
-
+    // FAST LOGIN CHECK
     try {
 
-      await Promise.race([
-
-        transporter.verify(),
-
-        new Promise((_, reject) =>
-          setTimeout(() => reject(
-            new Error("TIMEOUT")
-          ), 10000)
-        )
-
-      ]);
+      await transporter.verify();
 
     } catch (err) {
 
-      console.log(err.message);
+      console.log("LOGIN ERROR:", err);
 
       return res.json({
         success: false,
@@ -108,34 +86,18 @@ app.post("/send", async (req, res) => {
       });
     }
 
-    // EMAIL LIST
-
-    let emails = recipients
+    const emails = recipients
       .split(/[\n,]+/)
       .map(e => e.trim())
-      .filter(Boolean);
-
-    emails = [...new Set(emails)];
-
-    emails = emails.filter(valid);
+      .filter(e => valid(e));
 
     if (emails.length === 0) {
 
       return res.json({
         success: false,
-        popup: "❌ Invalid Emails"
+        popup: "❌ Invalid Recipient"
       });
     }
-
-    if (emails.length > DAILY_LIMIT) {
-
-      return res.json({
-        success: false,
-        popup: `❌ Daily Limit ${DAILY_LIMIT}`
-      });
-    }
-
-    // SENDING
 
     let sent = 0;
     let failed = 0;
@@ -150,49 +112,32 @@ app.post("/send", async (req, res) => {
 
           try {
 
-            await Promise.race([
+            await transporter.sendMail({
 
-              transporter.sendMail({
+              from: `"${senderName || gmail}" <${gmail}>`,
 
-                from: `"${senderName || "Mailer"}" <${gmail}>`,
+              to: email,
 
-                to: email,
+              subject: subject,
 
-                subject: subject,
+              text: message,
 
-                text: message,
-
-                html: `
-                  <div style="
-                    font-family:Arial;
-                    padding:20px;
-                    line-height:1.7;
-                  ">
-                    ${message.replace(/\n/g, "<br>")}
-                  </div>
-                `
-
-              }),
-
-              new Promise((_, reject) =>
-                setTimeout(() => reject(
-                  new Error("SEND_TIMEOUT")
-                ), 15000)
-              )
-
-            ]);
+              html: `
+                <div style="font-family:Arial;padding:20px;">
+                  ${message.replace(/\n/g, "<br>")}
+                </div>
+              `
+            });
 
             sent++;
 
-            console.log("✅ Sent:", email);
+            console.log("SENT:", email);
 
           } catch (err) {
 
             failed++;
 
-            console.log("❌ Failed:", email);
-
-            console.log(err.message);
+            console.log("MAIL ERROR:", err.message);
           }
 
         })
@@ -201,8 +146,6 @@ app.post("/send", async (req, res) => {
 
       await sleep(BATCH_DELAY);
     }
-
-    // FINAL RESPONSE
 
     if (sent === 0) {
 
@@ -221,7 +164,7 @@ app.post("/send", async (req, res) => {
 
   } catch (err) {
 
-    console.log(err);
+    console.log("SERVER ERROR:", err);
 
     return res.json({
       success: false,
@@ -232,7 +175,5 @@ app.post("/send", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-
-  console.log("🚀 Server Running On Port " + PORT);
-
+  console.log("🚀 Server Running");
 });
