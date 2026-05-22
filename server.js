@@ -12,7 +12,6 @@ const PORT = process.env.PORT || 3000;
 
 const BATCH_SIZE = 5;
 const BATCH_DELAY = 300;
-const DAILY_LIMIT = 500;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -40,7 +39,6 @@ app.post("/send", async (req, res) => {
     } = req.body;
 
     if (
-      !senderName ||
       !gmail ||
       !appPassword ||
       !subject ||
@@ -50,17 +48,13 @@ app.post("/send", async (req, res) => {
 
       return res.json({
         success: false,
-        popup: "❌ Fill all fields"
+        popup: "❌ Fill All Fields"
       });
     }
 
     const transporter = nodemailer.createTransport({
 
-      host: "smtp.gmail.com",
-
-      port: 587,
-
-      secure: false,
+      service: "gmail",
 
       auth: {
         user: gmail,
@@ -72,33 +66,26 @@ app.post("/send", async (req, res) => {
     const emails = recipients
       .split(/[\n,]+/)
       .map(e => e.trim())
-      .filter(Boolean);
+      .filter(e => valid(e));
 
-    const uniqueEmails = [...new Set(emails)];
-
-    if (uniqueEmails.length > DAILY_LIMIT) {
+    if (emails.length === 0) {
 
       return res.json({
         success: false,
-        popup: `❌ Daily Limit ${DAILY_LIMIT}`
+        popup: "❌ Invalid Recipient"
       });
     }
 
     let sent = 0;
     let failed = 0;
 
-    for (let i = 0; i < uniqueEmails.length; i += BATCH_SIZE) {
+    for (let i = 0; i < emails.length; i += BATCH_SIZE) {
 
-      const batch = uniqueEmails.slice(i, i + BATCH_SIZE);
+      const batch = emails.slice(i, i + BATCH_SIZE);
 
       await Promise.all(
 
         batch.map(async (email) => {
-
-          if (!valid(email)) {
-            failed++;
-            return;
-          }
 
           try {
 
@@ -109,6 +96,8 @@ app.post("/send", async (req, res) => {
               to: email,
 
               subject: subject,
+
+              text: message,
 
               html: `
                 <div style="font-family:Arial;padding:20px;">
@@ -135,6 +124,14 @@ app.post("/send", async (req, res) => {
       await sleep(BATCH_DELAY);
     }
 
+    if (sent === 0) {
+
+      return res.json({
+        success: false,
+        popup: "❌ Gmail Blocked Login Or Wrong App Password"
+      });
+    }
+
     return res.json({
       success: true,
       popup: `✅ Mail Sent ${sent}`,
@@ -148,12 +145,12 @@ app.post("/send", async (req, res) => {
 
     return res.json({
       success: false,
-      popup: err.message
+      popup: "❌ Server Error"
     });
   }
 
 });
 
 app.listen(PORT, () => {
-  console.log("🚀 Running On Port " + PORT);
+  console.log("🚀 Server Running");
 });
