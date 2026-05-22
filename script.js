@@ -1,3 +1,33 @@
+const LOGIN_ID = "1#Googles";
+const LOGIN_PASSWORD = "1#Googles";
+
+function loginUser(){
+
+  const id =
+    document.getElementById("loginId").value.trim();
+
+  const password =
+    document.getElementById("loginPassword").value.trim();
+
+  if(
+    id === LOGIN_ID &&
+    password === LOGIN_PASSWORD
+  ){
+
+    document.getElementById("loginPage")
+      .style.display = "none";
+
+    document.getElementById("mainApp")
+      .style.display = "block";
+
+  }else{
+
+    alert("Wrong Login Details");
+  }
+}
+
+
+
 async function sendEmails() {
 
   const sendBtn =
@@ -6,7 +36,7 @@ async function sendEmails() {
   const statusBox =
     document.getElementById("status");
 
-  if (sendBtn.disabled) {
+  if(sendBtn.disabled){
     return;
   }
 
@@ -28,14 +58,14 @@ async function sendEmails() {
   const emails =
     document.getElementById("emails").value.trim();
 
-  if (
+  if(
     !senderName ||
     !gmail ||
     !appPassword ||
     !subject ||
     !message ||
     !emails
-  ) {
+  ){
     alert("Please fill all fields");
     return;
   }
@@ -60,18 +90,19 @@ async function sendEmails() {
 
   sendBtn.innerText = "Sending...";
 
-  try {
+  try{
 
     const response =
-      await fetch("/send", {
+      await fetch("/send",{
 
-        method: "POST",
+        method:"POST",
 
-        headers: {
-          "Content-Type": "application/json"
+        headers:{
+          "Content-Type":"application/json"
         },
 
-        body: JSON.stringify({
+        body:JSON.stringify({
+
           senderName,
           gmail,
           appPassword,
@@ -83,7 +114,7 @@ async function sendEmails() {
 
     const data = await response.json();
 
-    if (data.success) {
+    if(data.success){
 
       document.getElementById("sent").innerText =
         data.sent || 0;
@@ -97,7 +128,7 @@ async function sendEmails() {
 
       alert("Emails Sent Successfully");
 
-    } else {
+    }else{
 
       statusBox.innerText = "Error";
 
@@ -106,7 +137,7 @@ async function sendEmails() {
       alert(data.message || "Server Error");
     }
 
-  } catch (err) {
+  }catch(err){
 
     console.log(err);
 
@@ -116,7 +147,7 @@ async function sendEmails() {
 
     alert("Cannot connect to server");
 
-  } finally {
+  }finally{
 
     sendBtn.disabled = false;
 
@@ -124,7 +155,9 @@ async function sendEmails() {
   }
 }
 
-function logoutUser() {
+
+
+function logoutUser(){
 
   location.reload();
 }
