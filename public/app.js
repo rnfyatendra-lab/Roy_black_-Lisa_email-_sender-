@@ -1,8 +1,13 @@
 const sendBtn = document.getElementById("sendBtn");
+const logoutBtn = document.getElementById("logoutBtn");
 
 sendBtn.addEventListener("click", async () => {
 
-  document.getElementById("result").innerHTML = "Sending...";
+  sendBtn.disabled = true;
+
+  sendBtn.innerHTML = "Sending...";
+
+  document.getElementById("result").innerHTML = "";
 
   const data = {
 
@@ -46,6 +51,10 @@ sendBtn.addEventListener("click", async () => {
       document.getElementById("result").innerHTML =
         `✅ Sent: ${result.sent} | ❌ Failed: ${result.failed}`;
 
+      document.getElementById("subject").value = "";
+      document.getElementById("message").value = "";
+      document.getElementById("recipients").value = "";
+
     }else{
 
       document.getElementById("result").innerHTML =
@@ -57,5 +66,18 @@ sendBtn.addEventListener("click", async () => {
     document.getElementById("result").innerHTML =
       err.message;
   }
+
+  sendBtn.disabled = false;
+
+  sendBtn.innerHTML = "Send All";
+
+});
+
+logoutBtn.addEventListener("dblclick", () => {
+
+  document.getElementById("gmail").value = "";
+  document.getElementById("appPassword").value = "";
+
+  alert("Logged Out");
 
 });
