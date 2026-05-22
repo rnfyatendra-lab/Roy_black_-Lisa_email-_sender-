@@ -5,13 +5,18 @@ const cors = require("cors");
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+
+app.use(express.json({
+  limit: "10mb"
+}));
+
 app.use(express.static("public"));
 
 const PORT = process.env.PORT || 3000;
 
 const BATCH_SIZE = 5;
 const BATCH_DELAY = 300;
+const DAILY_LIMIT = 500;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -54,25 +59,59 @@ app.post("/send", async (req, res) => {
 
     const transporter = nodemailer.createTransport({
 
-      service: "gmail",
+      host: "smtp.gmail.com",
+
+      port: 465,
+
+      secure: true,
 
       auth: {
         user: gmail,
         pass: appPassword
+      },
+
+      tls: {
+        rejectUnauthorized: false
       }
 
     });
 
-    const emails = recipients
+    try {
+
+      await transporter.verify();
+
+    } catch (err) {
+
+      console.log(err);
+
+      return res.json({
+        success: false,
+        popup: "❌ Wrong Gmail Or App Password"
+      });
+    }
+
+    let emails = recipients
       .split(/[\n,]+/)
       .map(e => e.trim())
-      .filter(e => valid(e));
+      .filter(Boolean);
+
+    emails = [...new Set(emails)];
+
+    emails = emails.filter(valid);
 
     if (emails.length === 0) {
 
       return res.json({
         success: false,
-        popup: "❌ Invalid Recipient"
+        popup: "❌ Invalid Recipient Emails"
+      });
+    }
+
+    if (emails.length > DAILY_LIMIT) {
+
+      return res.json({
+        success: false,
+        popup: `❌ Daily Limit ${DAILY_LIMIT}`
       });
     }
 
@@ -91,7 +130,7 @@ app.post("/send", async (req, res) => {
 
             await transporter.sendMail({
 
-              from: `"${senderName}" <${gmail}>`,
+              from: `"${senderName || "Mailer"}" <${gmail}>`,
 
               to: email,
 
@@ -100,19 +139,26 @@ app.post("/send", async (req, res) => {
               text: message,
 
               html: `
-                <div style="font-family:Arial;padding:20px;">
+                <div style="
+                  font-family:Arial;
+                  padding:20px;
+                  line-height:1.7;
+                ">
                   ${message.replace(/\n/g, "<br>")}
                 </div>
               `
+
             });
 
             sent++;
 
-            console.log("Sent:", email);
+            console.log("✅ Sent:", email);
 
           } catch (err) {
 
             failed++;
+
+            console.log("❌ Failed:", email);
 
             console.log(err.message);
           }
@@ -128,7 +174,7 @@ app.post("/send", async (req, res) => {
 
       return res.json({
         success: false,
-        popup: "❌ Gmail Blocked Login Or Wrong App Password"
+        popup: "❌ Gmail Rejected Sending"
       });
     }
 
@@ -152,5 +198,10 @@ app.post("/send", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log("🚀 Server Running");
+
+  console.log(`
+  🚀 Server Running
+  PORT: ${PORT}
+  `);
+
 });
