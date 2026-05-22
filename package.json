@@ -1,5 +1,5 @@
 {
-  "name": "railway-safe-mailer",
+  "name": "railway-mailer",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
