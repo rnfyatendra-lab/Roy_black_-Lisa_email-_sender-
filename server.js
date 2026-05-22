@@ -7,8 +7,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(express.static("public"));
+
+const BATCH_SIZE = 5;
+const BATCH_DELAY = 300;
+const DAILY_LIMIT = 500;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -35,6 +39,21 @@ app.post("/send", async (req, res) => {
       recipients
     } = req.body;
 
+    if (
+      !senderName ||
+      !gmail ||
+      !appPassword ||
+      !subject ||
+      !message ||
+      !recipients
+    ) {
+
+      return res.json({
+        success: false,
+        popup: "❌ Fill all fields"
+      });
+    }
+
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -50,42 +69,55 @@ app.post("/send", async (req, res) => {
     } catch (err) {
 
       return res.json({
-        success:false,
-        popup:"❌ Wrong App Password"
+        success: false,
+        popup: "❌ Wrong Gmail or App Password"
       });
     }
 
-    const list = recipients
+    let emails = recipients
       .split(/[\n,]+/)
       .map(e => e.trim())
       .filter(Boolean);
 
-    const emails = [...new Set(list)];
+    emails = [...new Set(emails)];
+
+    if (emails.length > DAILY_LIMIT) {
+
+      return res.json({
+        success: false,
+        popup: `❌ Daily Limit ${DAILY_LIMIT}`
+      });
+    }
 
     let sent = 0;
     let failed = 0;
 
-    const SPEED = 5;
+    for (let i = 0; i < emails.length; i += BATCH_SIZE) {
 
-    for (let i = 0; i < emails.length; i += SPEED) {
-
-      const batch = emails.slice(i, i + SPEED);
+      const batch = emails.slice(i, i + BATCH_SIZE);
 
       await Promise.all(
 
         batch.map(async (email) => {
 
-          if (!valid(email)) return;
+          if (!valid(email)) {
+            failed++;
+            return;
+          }
 
           try {
 
             await transporter.sendMail({
+
               from: `"${senderName}" <${gmail}>`,
+
               to: email,
+
               subject: subject,
+
               html: `
-                <div style="font-family:Arial;padding:20px;">
-                  ${message.replace(/\n/g,"<br>")}
+                <div style="font-family:Arial;padding:20px;font-size:16px;">
+                  ${message.replace(/\n/g, "<br>")}
                 </div>
               `
             });
@@ -97,32 +129,36 @@ app.post("/send", async (req, res) => {
           } catch (err) {
 
             failed++;
+
+            console.log("Failed:", email);
           }
 
         })
 
       );
 
-      await sleep(700);
+      await sleep(BATCH_DELAY);
     }
 
     return res.json({
-      success:true,
+      success: true,
       sent,
       failed,
-      popup:`✅ Mail Sent ${sent}`
+      popup: `✅ Mail Sent ${sent}`
     });
 
   } catch (err) {
 
+    console.log(err);
+
     return res.json({
-      success:false,
-      popup:err.message
+      success: false,
+      popup: "❌ Server Error"
     });
   }
 
 });
 
 app.listen(PORT, () => {
-  console.log("Server Running");
+  console.log("🚀 Server Running On Port " + PORT);
 });
