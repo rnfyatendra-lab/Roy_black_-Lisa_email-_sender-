@@ -1,18 +1,28 @@
 const express = require("express");
 const nodemailer = require("nodemailer");
 const cors = require("cors");
-const path = require("path");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static("public"));
 
 const PORT = process.env.PORT || 3000;
 
+const BATCH_SIZE = 5;
+const BATCH_DELAY = 300;
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function valid(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/index.html"));
+  res.sendFile(__dirname + "/public/index.html");
 });
 
 app.post("/send", async (req, res) => {
@@ -35,17 +45,12 @@ app.post("/send", async (req, res) => {
       !message ||
       !recipients
     ) {
-
       return res.json({
         success: false,
         popup: "❌ Fill All Fields"
       });
     }
 
-    // APP PASSWORD CLEAN
-    const cleanPassword = appPassword.replace(/\s/g, "");
-
-    // SMTP
     const transporter = nodemailer.createTransport({
 
       host: "smtp.gmail.com",
@@ -55,13 +60,17 @@ app.post("/send", async (req, res) => {
       secure: true,
 
       auth: {
-        user: gmail.trim(),
-        pass: cleanPassword
-      }
+        user: gmail,
+        pass: appPassword
+      },
+
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000
 
     });
 
-    // LOGIN TEST
+    // LOGIN CHECK
     try {
 
       await transporter.verify();
@@ -76,57 +85,79 @@ app.post("/send", async (req, res) => {
       });
     }
 
-    // EMAIL LIST
     const emails = recipients
       .split(/[\n,]+/)
       .map(e => e.trim())
-      .filter(Boolean);
+      .filter(e => valid(e));
 
     if (emails.length === 0) {
 
       return res.json({
         success: false,
-        popup: "❌ Invalid Recipients"
+        popup: "❌ Invalid Recipient"
       });
     }
 
     let sent = 0;
+    let failed = 0;
 
-    // SIMPLE SEND
-    for (const email of emails) {
+    for (let i = 0; i < emails.length; i += BATCH_SIZE) {
 
-      try {
+      const batch = emails.slice(i, i + BATCH_SIZE);
 
-        await transporter.sendMail({
+      await Promise.all(
 
-          from: `"${senderName || gmail}" <${gmail}>`,
+        batch.map(async (email) => {
 
-          to: email,
+          try {
 
-          subject: subject,
+            await transporter.sendMail({
 
-          text: message,
+              from: `"${senderName}" <${gmail}>`,
 
-          html: `
-            <div style="font-family:Arial;padding:20px;">
-              ${message.replace(/\n/g, "<br>")}
-            </div>
-          `
-        });
+              to: email,
 
-        sent++;
+              subject: subject,
 
-        console.log("MAIL SENT:", email);
+              text: message,
 
-      } catch (err) {
+              html: `
+                <div style="font-family:Arial;padding:20px;">
+                  ${message.replace(/\n/g, "<br>")}
+                </div>
+              `
 
-        console.log(err.message);
-      }
+            });
+
+            sent++;
+
+            console.log("✅ Sent:", email);
+
+          } catch (err) {
+
+            failed++;
+
+            console.log("❌ Failed:", email);
+
+          }
+
+        })
+
+      );
+
+      await sleep(BATCH_DELAY);
     }
 
     return res.json({
+
       success: true,
-      popup: `✅ Mail Sent ${sent}`
+
+      popup: `✅ Mail Sent ${sent}`,
+
+      sent,
+
+      failed
+
     });
 
   } catch (err) {
@@ -134,9 +165,13 @@ app.post("/send", async (req, res) => {
     console.log(err);
 
     return res.json({
+
       success: false,
+
       popup: "❌ Server Error"
+
     });
+
   }
 
 });
