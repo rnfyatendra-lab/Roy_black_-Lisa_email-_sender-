@@ -1,7 +1,6 @@
 {
   "name": "bulk-mailer",
   "version": "1.0.0",
-  "description": "Railway Bulk Email Sender",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
