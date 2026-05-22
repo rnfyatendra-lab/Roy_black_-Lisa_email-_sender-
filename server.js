@@ -43,7 +43,17 @@ app.post("/send", async (req, res) => {
       }
     });
 
-    await transporter.verify();
+    try {
+
+      await transporter.verify();
+
+    } catch (err) {
+
+      return res.json({
+        success:false,
+        popup:"❌ Wrong App Password"
+      });
+    }
 
     const list = recipients
       .split(/[\n,]+/)
@@ -55,11 +65,11 @@ app.post("/send", async (req, res) => {
     let sent = 0;
     let failed = 0;
 
-    const CONCURRENT_LIMIT = 5;
+    const SPEED = 5;
 
-    for (let i = 0; i < emails.length; i += CONCURRENT_LIMIT) {
+    for (let i = 0; i < emails.length; i += SPEED) {
 
-      const batch = emails.slice(i, i + CONCURRENT_LIMIT);
+      const batch = emails.slice(i, i + SPEED);
 
       await Promise.all(
 
@@ -75,18 +85,16 @@ app.post("/send", async (req, res) => {
               subject: subject,
               html: `
                 <div style="font-family:Arial;padding:20px;">
-                  ${message.replace(/\n/g, "<br>")}
+                  ${message.replace(/\n/g,"<br>")}
                 </div>
               `
             });
 
-            console.log("Sent:", email);
-
             sent++;
 
-          } catch (err) {
+            console.log("Sent:", email);
 
-            console.log(err.message);
+          } catch (err) {
 
             failed++;
           }
@@ -95,20 +103,21 @@ app.post("/send", async (req, res) => {
 
       );
 
-      await sleep(1000);
+      await sleep(700);
     }
 
-    res.json({
-      success: true,
+    return res.json({
+      success:true,
       sent,
-      failed
+      failed,
+      popup:`✅ Mail Sent ${sent}`
     });
 
   } catch (err) {
 
-    res.json({
-      success: false,
-      message: err.message
+    return res.json({
+      success:false,
+      popup:err.message
     });
   }
 
