@@ -29,7 +29,7 @@ app.post("/send", async (req, res) => {
 
   try {
 
-    let {
+    const {
       senderName,
       gmail,
       appPassword,
@@ -37,9 +37,6 @@ app.post("/send", async (req, res) => {
       message,
       recipients
     } = req.body;
-
-    gmail = gmail.trim();
-    appPassword = appPassword.trim();
 
     if (
       !gmail ||
@@ -58,21 +55,44 @@ app.post("/send", async (req, res) => {
     const transporter = nodemailer.createTransport({
 
       host: "smtp.gmail.com",
-
-      port: 587,
-
-      secure: false,
+      port: 465,
+      secure: true,
 
       auth: {
-        user: gmail,
-        pass: appPassword
+        user: gmail.trim(),
+        pass: appPassword.trim()
       },
 
-      tls: {
-        rejectUnauthorized: false
-      }
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000
 
     });
+
+    try {
+
+      await transporter.verify();
+
+    } catch (err) {
+
+      console.log(err);
+
+      if (
+        err.code === "EAUTH" ||
+        err.responseCode === 535
+      ) {
+
+        return res.json({
+          success: false,
+          popup: "❌ Wrong App Password"
+        });
+      }
+
+      return res.json({
+        success: false,
+        popup: "❌ Gmail Login Blocked"
+      });
+    }
 
     const emails = recipients
       .split(/[\n,]+/)
@@ -115,7 +135,6 @@ app.post("/send", async (req, res) => {
                   ${message.replace(/\n/g, "<br>")}
                 </div>
               `
-
             });
 
             sent++;
@@ -126,7 +145,8 @@ app.post("/send", async (req, res) => {
 
             failed++;
 
-            console.log(err);
+            console.log("❌ Failed:", email);
+            console.log(err.message);
 
           }
 
@@ -138,15 +158,10 @@ app.post("/send", async (req, res) => {
     }
 
     return res.json({
-
       success: true,
-
       popup: `✅ Mail Sent ${sent}`,
-
       sent,
-
       failed
-
     });
 
   } catch (err) {
@@ -154,13 +169,9 @@ app.post("/send", async (req, res) => {
     console.log(err);
 
     return res.json({
-
       success: false,
-
       popup: "❌ Server Error"
-
     });
-
   }
 
 });
