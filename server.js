@@ -10,13 +10,6 @@ app.use(express.static("public"));
 
 const PORT = process.env.PORT || 3000;
 
-const BATCH_SIZE = 5;
-const BATCH_DELAY = 300;
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 function valid(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -52,6 +45,8 @@ app.post("/send", async (req, res) => {
       });
     }
 
+    const cleanPass = appPassword.replace(/\s+/g, "");
+
     const transporter = nodemailer.createTransport({
 
       host: "smtp.gmail.com",
@@ -59,8 +54,8 @@ app.post("/send", async (req, res) => {
       secure: true,
 
       auth: {
-        user: gmail.trim(),
-        pass: appPassword.trim()
+        user: gmail,
+        pass: cleanPass
       },
 
       connectionTimeout: 10000,
@@ -78,19 +73,30 @@ app.post("/send", async (req, res) => {
       console.log(err);
 
       if (
-        err.code === "EAUTH" ||
-        err.responseCode === 535
+        err.message.includes("Username") ||
+        err.message.includes("Password")
       ) {
 
         return res.json({
           success: false,
-          popup: "❌ Wrong App Password"
+          popup: "❌ Wrong Gmail Or App Password"
+        });
+      }
+
+      if (
+        err.message.includes("Invalid login") ||
+        err.message.includes("534")
+      ) {
+
+        return res.json({
+          success: false,
+          popup: "❌ Gmail Login Blocked"
         });
       }
 
       return res.json({
         success: false,
-        popup: "❌ Gmail Login Blocked"
+        popup: "❌ Gmail SMTP Error"
       });
     }
 
@@ -110,56 +116,43 @@ app.post("/send", async (req, res) => {
     let sent = 0;
     let failed = 0;
 
-    for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+    for (const email of emails) {
 
-      const batch = emails.slice(i, i + BATCH_SIZE);
+      try {
 
-      await Promise.all(
+        await transporter.sendMail({
 
-        batch.map(async (email) => {
+          from: `"${senderName}" <${gmail}>`,
+          to: email,
+          subject: subject,
 
-          try {
+          text: message,
 
-            await transporter.sendMail({
+          html: `
+            <div style="font-family:Arial;padding:20px;">
+              ${message.replace(/\n/g, "<br>")}
+            </div>
+          `
+        });
 
-              from: `"${senderName}" <${gmail}>`,
+        sent++;
 
-              to: email,
+        console.log("Sent:", email);
 
-              subject: subject,
+      } catch (err) {
 
-              text: message,
+        failed++;
 
-              html: `
-                <div style="font-family:Arial;padding:20px;">
-                  ${message.replace(/\n/g, "<br>")}
-                </div>
-              `
-            });
-
-            sent++;
-
-            console.log("✅ Sent:", email);
-
-          } catch (err) {
-
-            failed++;
-
-            console.log("❌ Failed:", email);
-            console.log(err.message);
-
-          }
-
-        })
-
-      );
-
-      await sleep(BATCH_DELAY);
+        console.log(err.message);
+      }
     }
 
     return res.json({
+
       success: true,
-      popup: `✅ Mail Sent ${sent}`,
+
+      popup: `✅ Sent: ${sent} | Failed: ${failed}`,
+
       sent,
       failed
     });
@@ -173,7 +166,6 @@ app.post("/send", async (req, res) => {
       popup: "❌ Server Error"
     });
   }
-
 });
 
 app.listen(PORT, () => {
