@@ -29,8 +29,6 @@ sendBtn.addEventListener("click", async () => {
 
   sendBtn.innerHTML = "Sending...";
 
-  document.getElementById("result").innerHTML = "";
-
   const data = {
 
     senderName:
@@ -63,22 +61,15 @@ sendBtn.addEventListener("click", async () => {
       },
 
       body: JSON.stringify(data)
+
     });
 
     const result = await response.json();
 
     alert(result.popup);
 
-    if (result.success) {
-
-      document.getElementById("result").innerHTML =
-        `✅ Mail Sent ${result.sent}`;
-
-      document.getElementById("subject").value = "";
-      document.getElementById("message").value = "";
-      document.getElementById("recipients").value = "";
-
-    }
+    document.getElementById("result").innerHTML =
+      result.popup;
 
   } catch (err) {
 
