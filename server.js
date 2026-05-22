@@ -45,6 +45,7 @@ app.post("/send", async (req, res) => {
       !message ||
       !recipients
     ) {
+
       return res.json({
         success: false,
         popup: "❌ Fill All Fields"
@@ -55,35 +56,26 @@ app.post("/send", async (req, res) => {
 
       host: "smtp.gmail.com",
 
-      port: 465,
+      port: 587,
 
-      secure: true,
+      secure: false,
+
+      requireTLS: true,
 
       auth: {
         user: gmail,
         pass: appPassword
       },
 
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000
+      tls: {
+        rejectUnauthorized: false
+      },
+
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 5000
 
     });
-
-    // LOGIN CHECK
-    try {
-
-      await transporter.verify();
-
-    } catch (err) {
-
-      console.log(err);
-
-      return res.json({
-        success: false,
-        popup: "❌ Wrong Gmail Or App Password"
-      });
-    }
 
     const emails = recipients
       .split(/[\n,]+/)
@@ -121,6 +113,8 @@ app.post("/send", async (req, res) => {
 
               text: message,
 
+              priority: "high",
+
               html: `
                 <div style="font-family:Arial;padding:20px;">
                   ${message.replace(/\n/g, "<br>")}
@@ -137,7 +131,7 @@ app.post("/send", async (req, res) => {
 
             failed++;
 
-            console.log("❌ Failed:", email);
+            console.log(err.message);
 
           }
 
@@ -148,16 +142,19 @@ app.post("/send", async (req, res) => {
       await sleep(BATCH_DELAY);
     }
 
+    if (sent === 0) {
+
+      return res.json({
+        success: false,
+        popup: "❌ Wrong App Password"
+      });
+    }
+
     return res.json({
-
       success: true,
-
       popup: `✅ Mail Sent ${sent}`,
-
       sent,
-
       failed
-
     });
 
   } catch (err) {
@@ -165,17 +162,13 @@ app.post("/send", async (req, res) => {
     console.log(err);
 
     return res.json({
-
       success: false,
-
-      popup: "❌ Server Error"
-
+      popup: "❌ Server Timeout"
     });
-
   }
 
 });
 
 app.listen(PORT, () => {
-  console.log("🚀 Server Running On Port " + PORT);
+  console.log("🚀 Server Running");
 });
