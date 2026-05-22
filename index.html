@@ -1,73 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-  <meta charset="UTF-8">
-
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bulk Mail Launcher</title>
 
-  <link rel="stylesheet"
-        href="style.css">
-
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
 <div class="container">
 
-  <div class="logo">
-    📨
-  </div>
+  <div class="logo">📨</div>
 
   <div class="grid">
 
-    <input
-      id="senderName"
-      placeholder="Sender Name">
+    <input id="senderName" placeholder="Sender Name">
 
-    <input
-      id="gmail"
-      placeholder="Your Gmail">
+    <input id="gmail" placeholder="Your Gmail">
 
-    <input
-      id="appPassword"
-      type="password"
-      placeholder="App Password">
+    <input id="appPassword" type="password" placeholder="App Password">
 
-    <input
-      id="subject"
-      placeholder="Professional Subject">
+    <input id="subject" placeholder="Subject">
 
-    <textarea
-      id="message"
-      placeholder="Professional Message"></textarea>
+    <textarea id="message" placeholder="Message Body"></textarea>
 
-    <textarea
-      id="emails"
-      placeholder="Recipients"></textarea>
+    <textarea id="emails" placeholder="Recipients (comma or newline)"></textarea>
 
   </div>
 
   <div class="buttons">
 
-    <button
-      class="send-btn"
-      onclick="sendEmails()">
-
+    <button class="send-btn" onclick="sendEmails()">
       Send All
-
     </button>
 
-    <button
-      class="logout-btn"
-      ondblclick="logoutUser()">
-
+    <button class="logout-btn" ondblclick="logoutUser()">
       Logout
-
     </button>
 
   </div>
@@ -85,21 +55,17 @@
 
     <div class="box">
       <h2>Sent</h2>
-      <span class="green"
-            id="sent">0</span>
+      <span class="green" id="sent">0</span>
     </div>
 
     <div class="box">
       <h2>Failed</h2>
-      <span class="red"
-            id="failed">0</span>
+      <span class="red" id="failed">0</span>
     </div>
 
     <div class="box">
       <h2>Status</h2>
-      <span id="status">
-        Idle
-      </span>
+      <span id="status">Idle</span>
     </div>
 
   </div>
