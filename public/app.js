@@ -8,15 +8,15 @@ loginBtn.addEventListener("click", () => {
   const id = document.getElementById("loginId").value;
   const pass = document.getElementById("loginPassword").value;
 
-  if(id === LOGIN_ID && pass === LOGIN_PASSWORD){
+  if (id === LOGIN_ID && pass === LOGIN_PASSWORD) {
 
     document.getElementById("loginBox").style.display = "none";
 
     document.getElementById("mailer").style.display = "block";
 
-  }else{
+  } else {
 
-    alert("Wrong Login");
+    alert("❌ Wrong Login");
   }
 
 });
@@ -56,21 +56,20 @@ sendBtn.addEventListener("click", async () => {
 
     const response = await fetch("/send", {
 
-      method:"POST",
+      method: "POST",
 
-      headers:{
-        "Content-Type":"application/json"
+      headers: {
+        "Content-Type": "application/json"
       },
 
-      body:JSON.stringify(data)
-
+      body: JSON.stringify(data)
     });
 
     const result = await response.json();
 
     alert(result.popup);
 
-    if(result.success){
+    if (result.success) {
 
       document.getElementById("result").innerHTML =
         `✅ Mail Sent ${result.sent}`;
@@ -81,9 +80,9 @@ sendBtn.addEventListener("click", async () => {
 
     }
 
-  } catch(err){
+  } catch (err) {
 
-    alert(err.message);
+    alert("❌ Network Error");
   }
 
   sendBtn.disabled = false;
