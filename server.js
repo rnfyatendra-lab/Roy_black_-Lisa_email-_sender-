@@ -49,18 +49,16 @@ app.post("/send", async (req, res) => {
 
     const transporter = nodemailer.createTransport({
 
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
+      service: "gmail",
 
       auth: {
         user: gmail,
         pass: cleanPass
       },
 
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000
+      tls: {
+        rejectUnauthorized: false
+      }
 
     });
 
@@ -70,33 +68,11 @@ app.post("/send", async (req, res) => {
 
     } catch (err) {
 
-      console.log(err);
-
-      if (
-        err.message.includes("Username") ||
-        err.message.includes("Password")
-      ) {
-
-        return res.json({
-          success: false,
-          popup: "❌ Wrong Gmail Or App Password"
-        });
-      }
-
-      if (
-        err.message.includes("Invalid login") ||
-        err.message.includes("534")
-      ) {
-
-        return res.json({
-          success: false,
-          popup: "❌ Gmail Login Blocked"
-        });
-      }
+      console.log("VERIFY ERROR:", err);
 
       return res.json({
         success: false,
-        popup: "❌ Gmail SMTP Error"
+        popup: "❌ Gmail Login Failed"
       });
     }
 
@@ -123,27 +99,29 @@ app.post("/send", async (req, res) => {
         await transporter.sendMail({
 
           from: `"${senderName}" <${gmail}>`,
+
           to: email,
+
           subject: subject,
 
           text: message,
 
           html: `
-            <div style="font-family:Arial;padding:20px;">
-              ${message.replace(/\n/g, "<br>")}
-            </div>
+          <div style="font-family:Arial;padding:20px;">
+            ${message.replace(/\n/g, "<br>")}
+          </div>
           `
         });
 
         sent++;
 
-        console.log("Sent:", email);
+        console.log("SENT:", email);
 
       } catch (err) {
 
         failed++;
 
-        console.log(err.message);
+        console.log("SEND ERROR:", err);
       }
     }
 
@@ -151,21 +129,20 @@ app.post("/send", async (req, res) => {
 
       success: true,
 
-      popup: `✅ Sent: ${sent} | Failed: ${failed}`,
+      popup: `✅ Sent: ${sent} | Failed: ${failed}`
 
-      sent,
-      failed
     });
 
   } catch (err) {
 
-    console.log(err);
+    console.log("SERVER ERROR:", err);
 
     return res.json({
       success: false,
       popup: "❌ Server Error"
     });
   }
+
 });
 
 app.listen(PORT, () => {
