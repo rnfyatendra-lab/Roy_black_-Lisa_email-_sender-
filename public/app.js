@@ -1,5 +1,27 @@
+const LOGIN_ID = "##";
+const LOGIN_PASSWORD = "##";
+
+const loginBtn = document.getElementById("loginBtn");
+
+loginBtn.addEventListener("click", () => {
+
+  const id = document.getElementById("loginId").value;
+  const pass = document.getElementById("loginPassword").value;
+
+  if(id === LOGIN_ID && pass === LOGIN_PASSWORD){
+
+    document.getElementById("loginBox").style.display = "none";
+
+    document.getElementById("mailer").style.display = "block";
+
+  }else{
+
+    alert("Wrong Login");
+  }
+
+});
+
 const sendBtn = document.getElementById("sendBtn");
-const logoutBtn = document.getElementById("logoutBtn");
 
 sendBtn.addEventListener("click", async () => {
 
@@ -46,25 +68,22 @@ sendBtn.addEventListener("click", async () => {
 
     const result = await response.json();
 
+    alert(result.popup);
+
     if(result.success){
 
       document.getElementById("result").innerHTML =
-        `✅ Sent: ${result.sent} | ❌ Failed: ${result.failed}`;
+        `✅ Mail Sent ${result.sent}`;
 
       document.getElementById("subject").value = "";
       document.getElementById("message").value = "";
       document.getElementById("recipients").value = "";
 
-    }else{
-
-      document.getElementById("result").innerHTML =
-        `❌ ${result.message}`;
     }
 
   } catch(err){
 
-    document.getElementById("result").innerHTML =
-      err.message;
+    alert(err.message);
   }
 
   sendBtn.disabled = false;
@@ -73,11 +92,10 @@ sendBtn.addEventListener("click", async () => {
 
 });
 
+const logoutBtn = document.getElementById("logoutBtn");
+
 logoutBtn.addEventListener("dblclick", () => {
 
-  document.getElementById("gmail").value = "";
-  document.getElementById("appPassword").value = "";
-
-  alert("Logged Out");
+  location.reload();
 
 });
