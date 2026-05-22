@@ -43,6 +43,8 @@ app.post("/send", async (req, res) => {
       recipients
     } = req.body;
 
+    // VALIDATION
+
     if (
       !gmail ||
       !appPassword ||
@@ -57,6 +59,8 @@ app.post("/send", async (req, res) => {
       });
     }
 
+    // SMTP
+
     const transporter = nodemailer.createTransport({
 
       host: "smtp.gmail.com",
@@ -70,25 +74,41 @@ app.post("/send", async (req, res) => {
         pass: appPassword
       },
 
-      tls: {
-        rejectUnauthorized: false
-      }
+      connectionTimeout: 10000,
+
+      greetingTimeout: 10000,
+
+      socketTimeout: 10000
 
     });
 
+    // VERIFY LOGIN
+
     try {
 
-      await transporter.verify();
+      await Promise.race([
+
+        transporter.verify(),
+
+        new Promise((_, reject) =>
+          setTimeout(() => reject(
+            new Error("TIMEOUT")
+          ), 10000)
+        )
+
+      ]);
 
     } catch (err) {
 
-      console.log(err);
+      console.log(err.message);
 
       return res.json({
         success: false,
         popup: "❌ Wrong Gmail Or App Password"
       });
     }
+
+    // EMAIL LIST
 
     let emails = recipients
       .split(/[\n,]+/)
@@ -103,7 +123,7 @@ app.post("/send", async (req, res) => {
 
       return res.json({
         success: false,
-        popup: "❌ Invalid Recipient Emails"
+        popup: "❌ Invalid Emails"
       });
     }
 
@@ -114,6 +134,8 @@ app.post("/send", async (req, res) => {
         popup: `❌ Daily Limit ${DAILY_LIMIT}`
       });
     }
+
+    // SENDING
 
     let sent = 0;
     let failed = 0;
@@ -128,27 +150,37 @@ app.post("/send", async (req, res) => {
 
           try {
 
-            await transporter.sendMail({
+            await Promise.race([
 
-              from: `"${senderName || "Mailer"}" <${gmail}>`,
+              transporter.sendMail({
 
-              to: email,
+                from: `"${senderName || "Mailer"}" <${gmail}>`,
 
-              subject: subject,
+                to: email,
 
-              text: message,
+                subject: subject,
 
-              html: `
-                <div style="
-                  font-family:Arial;
-                  padding:20px;
-                  line-height:1.7;
-                ">
-                  ${message.replace(/\n/g, "<br>")}
-                </div>
-              `
+                text: message,
 
-            });
+                html: `
+                  <div style="
+                    font-family:Arial;
+                    padding:20px;
+                    line-height:1.7;
+                  ">
+                    ${message.replace(/\n/g, "<br>")}
+                  </div>
+                `
+
+              }),
+
+              new Promise((_, reject) =>
+                setTimeout(() => reject(
+                  new Error("SEND_TIMEOUT")
+                ), 15000)
+              )
+
+            ]);
 
             sent++;
 
@@ -170,11 +202,13 @@ app.post("/send", async (req, res) => {
       await sleep(BATCH_DELAY);
     }
 
+    // FINAL RESPONSE
+
     if (sent === 0) {
 
       return res.json({
         success: false,
-        popup: "❌ Gmail Rejected Sending"
+        popup: "❌ Gmail Blocked Sending"
       });
     }
 
@@ -199,9 +233,6 @@ app.post("/send", async (req, res) => {
 
 app.listen(PORT, () => {
 
-  console.log(`
-  🚀 Server Running
-  PORT: ${PORT}
-  `);
+  console.log("🚀 Server Running On Port " + PORT);
 
 });
