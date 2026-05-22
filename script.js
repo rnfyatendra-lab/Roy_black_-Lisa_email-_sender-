@@ -1,162 +1,82 @@
-const HOURLY_LIMIT = 28;
-const PARALLEL = 2;
-const DELAY_MS = 4500;
-
-let hourlyStats = {
-  count: 0
-};
-
-setInterval(() => {
-  hourlyStats.count = 0;
-}, 60 * 60 * 1000);
-
 async function sendEmails() {
 
-  const sendBtn =
-    document.querySelector(".send-btn");
-
-  const status =
-    document.getElementById("status");
-
   const senderName =
-    document.getElementById("senderName").value.trim();
+    document.getElementById("senderName").value;
 
   const gmail =
-    document.getElementById("gmail").value.trim();
+    document.getElementById("gmail").value;
 
   const appPassword =
-    document.getElementById("appPassword").value.trim();
+    document.getElementById("appPassword").value;
 
   const subject =
-    document.getElementById("subject").value.trim();
+    document.getElementById("subject").value;
 
   const message =
-    document.getElementById("message").value.trim();
+    document.getElementById("message").value;
 
   const emails =
     document.getElementById("emails").value;
 
   const emailList = emails
     .split(/[\n,]+/)
-    .map(e => e.trim())
     .filter(Boolean);
-
-  if (
-    !senderName ||
-    !gmail ||
-    !appPassword ||
-    !subject ||
-    !message ||
-    !emailList.length
-  ) {
-    alert("Fill all fields");
-    return;
-  }
-
-  if (
-    hourlyStats.count + emailList.length >
-    HOURLY_LIMIT
-  ) {
-    alert(
-      "Hourly limit reached. Please wait."
-    );
-    return;
-  }
-
-  sendBtn.disabled = true;
-
-  sendBtn.innerText = "Sending...";
-
-  status.innerText = "Sending...";
 
   document.getElementById("total").innerText =
     emailList.length;
 
-  document.getElementById("sent").innerText = "0";
-
-  document.getElementById("failed").innerText = "0";
-
-  let sent = 0;
-  let failed = 0;
+  document.getElementById("status").innerText =
+    "Sending...";
 
   try {
 
-    for (let i = 0; i < emailList.length; i++) {
+    const response = await fetch("/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        senderName,
+        gmail,
+        appPassword,
+        subject,
+        message,
+        emails
+      })
+    });
 
-      const email = emailList[i];
+    const data = await response.json();
 
-      try {
-
-        const response =
-          await fetch("/send", {
-
-            method: "POST",
-
-            headers: {
-              "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify({
-              senderName,
-              gmail,
-              appPassword,
-              subject,
-              message,
-              emails: email
-            })
-
-          });
-
-        const data =
-          await response.json();
-
-        if (data.success) {
-
-          sent++;
-
-          hourlyStats.count++;
-
-        } else {
-
-          failed++;
-        }
-
-      } catch (err) {
-
-        failed++;
-      }
+    if (data.success) {
 
       document.getElementById("sent").innerText =
-        sent;
+        data.sent;
 
       document.getElementById("failed").innerText =
-        failed;
+        data.failed;
 
-      await new Promise(resolve =>
-        setTimeout(resolve, DELAY_MS)
-      );
+      document.getElementById("status").innerText =
+        "Completed";
+
+      alert("Emails Sent Successfully");
+
+    } else {
+
+      document.getElementById("status").innerText =
+        "Error";
+
+      alert(data.message);
     }
-
-    status.innerText = "Completed";
-
-    sendBtn.disabled = false;
-
-    sendBtn.innerText = "Send All";
-
-    alert("Emails Sent Successfully");
 
   } catch (err) {
 
-    status.innerText = "Server Error";
-
-    sendBtn.disabled = false;
-
-    sendBtn.innerText = "Send All";
+    document.getElementById("status").innerText =
+      "Server Error";
 
     alert("Cannot connect to server");
   }
 }
 
-function logoutUser() {
+function logoutUser(){
   location.reload();
 }
