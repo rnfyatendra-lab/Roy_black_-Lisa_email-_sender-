@@ -1,206 +1,164 @@
-import express from "express";
-import cors from "cors";
-import nodemailer from "nodemailer";
-import path from "path";
-import { fileURLToPath } from "url";
+const LOGIN_ID = "1#Googles";
+const LOGIN_PASSWORD = "1#Googles";
 
-const app = express();
+function loginUser(){
 
-app.use(cors());
-app.use(express.json({
-  limit: "10mb"
-}));
+  const id =
+    document.getElementById("loginId").value.trim();
 
-const __filename =
-  fileURLToPath(import.meta.url);
+  const password =
+    document.getElementById("loginPassword").value.trim();
 
-const __dirname =
-  path.dirname(__filename);
+  if(
+    id === LOGIN_ID &&
+    password === LOGIN_PASSWORD
+  ){
 
-app.use(express.static(__dirname));
+    document.getElementById("loginPage")
+      .style.display = "none";
 
-app.get("/", (req, res) => {
+    document.getElementById("mainApp")
+      .style.display = "block";
 
-  res.sendFile(
-    path.join(__dirname, "index.html")
-  );
-});
+  }else{
 
-
-/* SAFE SETTINGS */
-
-const PARALLEL = 2;
-
-const DELAY_MS = 3000;
-
-const HOURLY_LIMIT = 23;
-
-let sentThisHour = 0;
-
-setInterval(() => {
-
-  sentThisHour = 0;
-
-}, 60 * 60 * 1000);
-
-
-
-app.post("/send", async (req, res) => {
-
-  try {
-
-    const {
-      senderName,
-      gmail,
-      appPassword,
-      subject,
-      message,
-      emails
-    } = req.body;
-
-    if (
-      !senderName ||
-      !gmail ||
-      !appPassword ||
-      !subject ||
-      !message ||
-      !emails
-    ) {
-
-      return res.status(400).json({
-        success: false,
-        message: "All fields required"
-      });
-    }
-
-    const emailList = emails
-      .split(/[\n,]+/)
-      .map(e => e.trim())
-      .filter(Boolean);
-
-    if (
-      sentThisHour + emailList.length >
-      HOURLY_LIMIT
-    ) {
-
-      return res.status(429).json({
-        success: false,
-        message:
-          "Hourly limit reached"
-      });
-    }
-
-    const transporter =
-      nodemailer.createTransport({
-
-        service: "gmail",
-
-        pool: true,
-
-        maxConnections: 2,
-
-        auth: {
-          user: gmail,
-          pass: appPassword
-        }
-      });
-
-    let sent = 0;
-    let failed = 0;
-
-    for (
-      let i = 0;
-      i < emailList.length;
-      i += PARALLEL
-    ) {
-
-      const batch =
-        emailList.slice(
-          i,
-          i + PARALLEL
-        );
-
-      await Promise.all(
-
-        batch.map(async (email) => {
-
-          try {
-
-            await transporter.sendMail({
-
-              from:
-                `"${senderName}" <${gmail}>`,
-
-              to: email,
-
-              subject: subject,
-
-              text: message,
-
-              headers: {
-
-                "X-Mailer":
-                  "Professional Mail Launcher",
-
-                "X-Priority":
-                  "3"
-              }
-
-            });
-
-            sent++;
-
-            sentThisHour++;
-
-          } catch (err) {
-
-            failed++;
-
-            console.log(
-              "Failed:",
-              email
-            );
-          }
-
-        })
-
-      );
-
-      await new Promise(resolve =>
-        setTimeout(resolve, DELAY_MS)
-      );
-    }
-
-    transporter.close();
-
-    return res.json({
-
-      success: true,
-
-      sent,
-
-      failed
-    });
-
-  } catch (error) {
-
-    console.log(error);
-
-    return res.status(500).json({
-
-      success: false,
-
-      message: "Server Error"
-    });
+    alert("Wrong Login Details");
   }
-});
+}
 
-const PORT =
-  process.env.PORT || 10000;
 
-app.listen(PORT, () => {
 
-  console.log(
-    `Server Running On ${PORT}`
-  );
-});
+async function sendEmails(){
+
+  const sendBtn =
+    document.querySelector(".send-btn");
+
+  const statusBox =
+    document.getElementById("status");
+
+  if(sendBtn.disabled){
+    return;
+  }
+
+  const senderName =
+    document.getElementById("senderName").value.trim();
+
+  const gmail =
+    document.getElementById("gmail").value.trim();
+
+  const appPassword =
+    document.getElementById("appPassword").value.trim();
+
+  const subject =
+    document.getElementById("subject").value.trim();
+
+  const message =
+    document.getElementById("message").value.trim();
+
+  const emails =
+    document.getElementById("emails").value.trim();
+
+  if(
+    !senderName ||
+    !gmail ||
+    !appPassword ||
+    !subject ||
+    !message ||
+    !emails
+  ){
+    alert("Please fill all fields");
+    return;
+  }
+
+  const emailList = emails
+    .split(/[\n,]+/)
+    .map(e => e.trim())
+    .filter(Boolean);
+
+  document.getElementById("total").innerText =
+    emailList.length;
+
+  document.getElementById("sent").innerText =
+    "0";
+
+  document.getElementById("failed").innerText =
+    "0";
+
+  statusBox.innerText = "Sending...";
+
+  sendBtn.disabled = true;
+
+  sendBtn.innerText = "Sending...";
+
+  try{
+
+    const response =
+      await fetch("/send",{
+
+        method:"POST",
+
+        headers:{
+          "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+
+          senderName,
+          gmail,
+          appPassword,
+          subject,
+          message,
+          emails
+        })
+      });
+
+    const data =
+      await response.json();
+
+    if(data.success){
+
+      document.getElementById("sent").innerText =
+        data.sent || 0;
+
+      document.getElementById("failed").innerText =
+        data.failed || 0;
+
+      statusBox.innerText = "Completed";
+
+      statusBox.style.color = "green";
+
+      alert("Emails Sent Successfully");
+
+    }else{
+
+      statusBox.innerText = "Error";
+
+      statusBox.style.color = "red";
+
+      alert(data.message || "Server Error");
+    }
+
+  }catch(err){
+
+    console.log(err);
+
+    statusBox.innerText = "Server Error";
+
+    statusBox.style.color = "red";
+
+    alert("Cannot connect to server");
+
+  }finally{
+
+    sendBtn.disabled = false;
+
+    sendBtn.innerText = "Send All";
+  }
+}
+
+
+
+function logoutUser(){
+
+  location.reload();
+}
